@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>이음 모바일</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f5f6f8; color: #1a1a1a; height: 100dvh; overflow: hidden; }
+
+    /* ── 로그인 ── */
+    #login-screen { height: 100dvh; display: flex; flex-direction: column; background: linear-gradient(160deg, #1a73e8, #0d47a1); }
+    .login-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 40px 24px 20px; }
+    .login-hero .app-icon { width: 72px; height: 72px; background: rgba(255,255,255,.2); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+    .login-hero .app-icon .material-symbols-outlined { font-size: 40px; color: white; }
+    .login-hero h1 { font-size: 28px; font-weight: 700; letter-spacing: -.5px; }
+    .login-hero p { font-size: 14px; opacity: .75; margin-top: 6px; }
+    .login-card { background: white; border-radius: 24px 24px 0 0; padding: 28px 24px 40px; }
+    .login-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #666; display: block; margin-bottom: 6px; }
+    .form-group select, .form-group input { width: 100%; padding: 13px 14px; border: 1.5px solid #e8e8e8; border-radius: 12px; font-size: 15px; outline: none; background: #fafafa; appearance: none; -webkit-appearance: none; transition: border-color .15s; }
+    .form-group select:focus, .form-group input:focus { border-color: #1a73e8; background: white; }
+    .login-btn { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 6px; transition: background .15s; }
+    .login-btn:active { background: #1557b0; }
+    .login-btn:disabled { background: #a8c4e8; }
+    .login-error { color: #d32f2f; font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
+
+    /* ── 앱 셸 ── */
+    #app-screen { height: 100dvh; display: flex; flex-direction: column; }
+    .app-header { background: white; padding: 10px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+    .app-header .school-name { font-size: 11px; color: #999; }
+    .app-header .teacher-name { font-size: 16px; font-weight: 700; flex: 1; }
+    .logout-btn { background: none; border: 1px solid #e8e8e8; border-radius: 8px; padding: 5px 11px; font-size: 12px; color: #666; cursor: pointer; }
+    .tab-panels { flex: 1; overflow: hidden; position: relative; }
+    .tab-panel { position: absolute; inset: 0; overflow-y: auto; display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── 날짜 네비 ── */
+    .date-nav { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; flex-shrink: 0; }
+    .date-nav .nav-btn { background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: #555; display: flex; align-items: center; }
+    .date-nav .nav-btn .material-symbols-outlined { font-size: 22px; }
+    .date-nav .nav-btn:active { background: #f0f0f0; }
+    .date-nav .date-label { font-size: 15px; font-weight: 700; color: #1a1a1a; }
+    .date-nav .today-btn { background: #e8f0fe; border: none; color: #1a73e8; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; cursor: pointer; }
+
+    /* ── 공통 카드 ── */
+    .section-card { background: white; margin: 12px 16px; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .card-row { display: flex; align-items: flex-start; padding: 13px 16px; gap: 12px; border-bottom: 1px solid #f5f5f5; }
+    .card-row:last-child { border-bottom: none; }
+    .time-col { min-width: 48px; text-align: center; padding-top: 1px; }
+    .time-top { font-size: 13px; font-weight: 700; color: #1a73e8; }
+    .time-bot { font-size: 11px; color: #bbb; margin-top: 1px; }
+    .card-body { flex: 1; min-width: 0; }
+    .card-title { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-sub { font-size: 12px; color: #888; margin-top: 3px; }
+    .type-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
+    .badge-event { background: #e8f0fe; color: #1a73e8; }
+    .badge-deadline { background: #fce8e6; color: #c62828; }
+    .badge-absence { background: #fff3e0; color: #e65100; }
+    .badge-routine { background: #e6f4ea; color: #2e7d32; }
+    .badge-class { background: #f3e8fd; color: #6a1b9a; }
+    .empty-state { text-align: center; padding: 56px 24px; color: #ccc; }
+    .empty-state .material-symbols-outlined { font-size: 48px; display: block; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; }
+    .loading { text-align: center; padding: 40px 24px; color: #ccc; font-size: 14px; }
+    .section-label { font-size: 12px; font-weight: 700; color: #999; padding: 16px 16px 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── 학사일정 달력 ── */
+    .month-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; }
+    .month-nav .nav-btn { background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: #555; display: flex; align-items: center; }
+    .month-nav .nav-btn .material-symbols-outlined { font-size: 22px; }
+    .month-nav .month-label { font-size: 16px; font-weight: 700; }
+    .cal-wrap { padding: 8px 16px 16px; }
+    .cal-table { width: 100%; border-collapse: collapse; }
+    .cal-table th { font-size: 11px; font-weight: 700; color: #999; text-align: center; padding: 8px 0 6px; }
+    .cal-table td { border: 1px solid #f0f0f0; vertical-align: top; padding: 5px 4px; font-size: 11px; }
+    .day-num { font-size: 12px; font-weight: 600; color: #333; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-bottom: 2px; }
+    .day-num.today-circle { background: #1a73e8; color: white; }
+    .cal-table td.outside { background: #fafafa; }
+    .cal-table td.outside .day-num { color: #ddd; }
+    .event-pill { display: block; font-size: 10px; padding: 1px 4px; border-radius: 3px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.5; font-weight: 500; }
+    .color-RED { color: #c62828; background: #fce8e6; }
+    .color-BLUE { color: #1565c0; background: #e8f0fe; }
+    .color-GREEN { color: #2e7d32; background: #e6f4ea; }
+    .color-PURPLE { color: #6a1b9a; background: #f3e8fd; }
+    .color-GREY { color: #555; background: #f1f3f4; }
+
+    /* ── 일과시간표 ── */
+    .period-card { background: white; margin: 12px 16px; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .period-row { display: flex; align-items: center; padding: 13px 16px; gap: 14px; border-bottom: 1px solid #f5f5f5; }
+    .period-row:last-child { border-bottom: none; }
+    .p-num { font-size: 13px; font-weight: 800; color: #1a73e8; min-width: 28px; }
+    .p-time { font-size: 13px; color: #333; flex: 1; }
+    .p-event { font-size: 12px; color: #888; max-width: 90px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── 주간 시간표 ── */
+    .week-nav { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; }
+    .week-nav .nav-btn { background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: #555; display: flex; align-items: center; }
+    .week-nav .nav-btn .material-symbols-outlined { font-size: 22px; }
+    .week-nav .week-label { font-size: 14px; font-weight: 700; }
+    .tt-scroll { overflow-x: auto; margin: 12px 16px; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .tt-table { min-width: 340px; border-collapse: collapse; width: 100%; background: white; }
+    .tt-table th { background: #f8f9fa; font-size: 11px; font-weight: 700; text-align: center; padding: 9px 4px; border-bottom: 2px solid #e8e8e8; border-right: 1px solid #f0f0f0; color: #555; }
+    .tt-table th:first-child { width: 32px; color: #bbb; font-size: 10px; }
+    .tt-table th.today-col { color: #1a73e8; background: #e8f0fe; }
+    .tt-table td { border: 1px solid #f0f0f0; text-align: center; padding: 8px 3px; vertical-align: middle; min-height: 52px; font-size: 11px; }
+    .tt-table td.period-col { color: #1a73e8; font-weight: 700; background: #f8f9fa; font-size: 11px; }
+    .tt-table td .subj { font-weight: 700; color: #1a1a1a; display: block; line-height: 1.3; }
+    .tt-table td .cls { color: #999; font-size: 10px; display: block; margin-top: 2px; }
+    .tt-table td.status-vacated { background: #fce8e6; }
+    .tt-table td.status-changed { background: #fff3e0; }
+    .tt-table td.status-reinforcement { background: #e6f4ea; }
+    .tt-table td.today-col { background: #f5f9ff; }
+    .status-tag { font-size: 9px; display: block; margin-top: 1px; font-weight: 600; }
+    .tag-vacated { color: #c62828; }
+    .tag-changed { color: #e65100; }
+    .tag-reinforcement { color: #2e7d32; }
+
+    /* ── 조종례 ── */
+    .grade-tab-bar { display: flex; padding: 10px 16px 0; gap: 8px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 52px; z-index: 9; }
+    .grade-tab { padding: 7px 16px 9px; border-radius: 20px 20px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; border: none; border-bottom: 3px solid transparent; color: #999; background: none; transition: all .15s; }
+    .grade-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+    .morning-card { background: white; margin: 12px 16px; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .morning-row { padding: 14px 16px; border-bottom: 1px solid #f5f5f5; }
+    .morning-row:last-child { border-bottom: none; }
+    .morning-meta { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+    .cat-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #e8f0fe; color: #1a73e8; }
+    .grade-tag { font-size: 11px; color: #999; }
+    .morning-title { font-size: 14px; font-weight: 700; color: #1a1a1a; line-height: 1.4; }
+    .morning-content { font-size: 13px; color: #555; margin-top: 5px; line-height: 1.6; }
+    .morning-author { font-size: 11px; color: #bbb; margin-top: 7px; }
+
+    /* ── 하단 네비 ── */
+    .bottom-nav { display: flex; background: white; border-top: 1px solid #eee; padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; cursor: pointer; border: none; background: none; color: #bbb; gap: 2px; transition: color .15s; }
+    .nav-item.active { color: #1a73e8; }
+    .nav-item .material-symbols-outlined { font-size: 24px; }
+    .nav-item .nav-label { font-size: 10px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════ 로그인 화면 ════════════════ -->
+<div id="login-screen">
+  <div class="login-hero">
+    <div class="app-icon"><span class="material-symbols-outlined">hub</span></div>
+    <h1>이음 모바일</h1>
+    <p>학교 정보를 손안에서 확인하세요</p>
+  </div>
+  <div class="login-card">
+    <h2>로그인</h2>
+    <div class="form-group">
+      <label>학교 선택</label>
+      <select id="school-select"><option value="">학교를 선택하세요</option></select>
+    </div>
+    <div class="form-group">
+      <label>이름</label>
+      <input id="login-name" type="text" placeholder="홍길동" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>비밀번호</label>
+      <input id="login-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="login()">로그인</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ════════════════ 앱 화면 ════════════════ -->
+<div id="app-screen" style="display:none">
+  <header class="app-header">
+    <div>
+      <div class="school-name" id="header-school"></div>
+      <div class="teacher-name" id="header-name"></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
+  </header>
+
+  <div class="tab-panels">
+
+    <!-- 1. 캘린더 -->
+    <div id="tab-calendar" class="tab-panel active">
+      <div class="date-nav">
+        <button class="nav-btn" onclick="moveDay('calendar', -1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="date-label" id="calendar-date-label"></span>
+        <button class="today-btn" onclick="goToday('calendar')">오늘</button>
+        <button class="nav-btn" onclick="moveDay('calendar', 1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div id="calendar-content"></div>
+    </div>
+
+    <!-- 2. 학사일정 -->
+    <div id="tab-academic" class="tab-panel">
+      <div class="month-nav">
+        <button class="nav-btn" onclick="moveMonth(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="month-label" id="academic-month-label"></span>
+        <button class="nav-btn" onclick="moveMonth(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div class="cal-wrap"><div id="academic-content"></div></div>
+    </div>
+
+    <!-- 3. 일과시간표 -->
+    <div id="tab-periods" class="tab-panel">
+      <div class="date-nav">
+        <button class="nav-btn" onclick="moveDay('periods', -1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="date-label" id="periods-date-label"></span>
+        <button class="today-btn" onclick="goToday('periods')">오늘</button>
+        <button class="nav-btn" onclick="moveDay('periods', 1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div id="periods-content"></div>
+    </div>
+
+    <!-- 4. 시간표 (주간) -->
+    <div id="tab-timetable" class="tab-panel">
+      <div class="week-nav">
+        <button class="nav-btn" onclick="moveWeek(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="week-label" id="timetable-week-label"></span>
+        <button class="today-btn" onclick="goToday('timetable')">이번 주</button>
+        <button class="nav-btn" onclick="moveWeek(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div class="tt-scroll"><div id="timetable-content"></div></div>
+    </div>
+
+    <!-- 5. 조종례 -->
+    <div id="tab-morning" class="tab-panel">
+      <div class="date-nav" style="top:0">
+        <button class="nav-btn" onclick="moveDay('morning', -1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="date-label" id="morning-date-label"></span>
+        <button class="today-btn" onclick="goToday('morning')">오늘</button>
+        <button class="nav-btn" onclick="moveDay('morning', 1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div class="grade-tab-bar">
+        <button class="grade-tab active" data-grade="1학년" onclick="selectGrade(this)">1학년</button>
+        <button class="grade-tab" data-grade="2학년" onclick="selectGrade(this)">2학년</button>
+        <button class="grade-tab" data-grade="3학년" onclick="selectGrade(this)">3학년</button>
+      </div>
+      <div id="morning-content"></div>
+    </div>
+
+  </div>
+
+  <!-- 하단 네비게이션 -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('calendar', this)">
+      <span class="material-symbols-outlined">calendar_month</span>
+      <span class="nav-label">캘린더</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('academic', this)">
+      <span class="material-symbols-outlined">event_note</span>
+      <span class="nav-label">학사일정</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('periods', this)">
+      <span class="material-symbols-outlined">schedule</span>
+      <span class="nav-label">일과시간</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('timetable', this)">
+      <span class="material-symbols-outlined">view_week</span>
+      <span class="nav-label">시간표</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('morning', this)">
+      <span class="material-symbols-outlined">campaign</span>
+      <span class="nav-label">조종례</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://qhfqxrvxjrmnkskklfmm.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZnF4cnZ4anJtbmtza2tsZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mjg3NjksImV4cCI6MjA5NjQwNDc2OX0.kuqxcDaWTxzZGXReIk3AtKLwip_cvDYTbi_uAmRHFHw';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── 상태 ──
+let me = null;
+let currentTab = 'calendar';
+const state = {
+  calendar: new Date(),
+  periods:  new Date(),
+  morning:  new Date(),
+  academic: new Date(),
+  timetableWeek: 0,
+  morningGrade: '1학년',
+};
+
+// ── 유틸 ──
+const fmt = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const p2  = n => String(n).padStart(2, '0');
+const KO_DAY = ['일','월','화','수','목','금','토'];
+const dateLabel = d => `${d.getFullYear()}.${p2(d.getMonth()+1)}.${p2(d.getDate())} (${KO_DAY[d.getDay()]})`;
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+const getMonday = (d, offset=0) => {
+  const r = new Date(d);
+  const day = r.getDay();
+  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day) + offset * 7);
+  r.setHours(0,0,0,0);
+  return r;
+};
+const isToday = d => fmt(d) === fmt(new Date());
+
+// ── 초기화 ──
+window.onload = async () => {
+  await loadSchools();
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showApp(session.user);
+};
+
+async function loadSchools() {
+  const { data } = await sb.from('schools').select('id, name, code').order('name');
+  const sel = document.getElementById('school-select');
+  (data || []).forEach(s => {
+    const o = document.createElement('option');
+    o.value = JSON.stringify({ id: s.id, code: s.code, name: s.name });
+    o.textContent = s.name;
+    sel.appendChild(o);
+  });
+}
+
+// ── 로그인 ──
+async function login() {
+  const btn = document.querySelector('.login-btn');
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  const schoolRaw = document.getElementById('school-select').value;
+  const name      = document.getElementById('login-name').value.trim();
+  const pw        = document.getElementById('login-pw').value;
+  if (!schoolRaw) { err.textContent = '학교를 선택해주세요.'; return; }
+  if (!name)      { err.textContent = '이름을 입력해주세요.'; return; }
+  if (!pw)        { err.textContent = '비밀번호를 입력해주세요.'; return; }
+
+  const school = JSON.parse(schoolRaw);
+  btn.disabled = true; btn.textContent = '로그인 중...';
+
+  const { data: lookup, error: le } = await sb
+    .from('teacher_lookup').select('username').eq('school_id', school.id).eq('display_name', name).maybeSingle();
+
+  if (!lookup) {
+    err.textContent = '등록되지 않은 이름입니다. 관리자에게 문의하세요.';
+    btn.disabled = false; btn.textContent = '로그인'; return;
+  }
+
+  const email = `${lookup.username}@${school.code}.eeum.local`;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+
+  if (error) {
+    err.textContent = '비밀번호가 올바르지 않습니다.';
+    btn.disabled = false; btn.textContent = '로그인'; return;
+  }
+
+  showApp(data.user);
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  me = null;
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showApp(user) {
+  me = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+  document.getElementById('header-school').textContent = user.user_metadata.school_name || '';
+  document.getElementById('header-name').textContent = user.user_metadata.name + ' 선생님';
+
+  // 학교명 표시 (schools 테이블에서 가져오기)
+  sb.from('schools').select('name').eq('id', user.user_metadata.school_id).single()
+    .then(({ data }) => { if (data) document.getElementById('header-school').textContent = data.name; });
+
+  loadTab('calendar');
+}
+
+// ── 탭 전환 ──
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  currentTab = tab;
+  loadTab(tab);
+}
+
+function loadTab(tab) {
+  if (tab === 'calendar')  loadCalendar();
+  if (tab === 'academic')  loadAcademic();
+  if (tab === 'periods')   loadPeriods();
+  if (tab === 'timetable') loadTimetable();
+  if (tab === 'morning')   loadMorning();
+}
+
+// ── 날짜 이동 ──
+function moveDay(tab, delta) {
+  state[tab] = addDays(state[tab], delta);
+  loadTab(tab);
+}
+function goToday(tab) {
+  if (tab === 'timetable') { state.timetableWeek = 0; loadTimetable(); return; }
+  if (tab === 'academic')  { state.academic = new Date(); loadAcademic(); return; }
+  state[tab] = new Date();
+  loadTab(tab);
+}
+function moveMonth(delta) {
+  state.academic.setMonth(state.academic.getMonth() + delta);
+  loadAcademic();
+}
+function moveWeek(delta) {
+  state.timetableWeek += delta;
+  loadTimetable();
+}
+function selectGrade(el) {
+  document.querySelectorAll('.grade-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  state.morningGrade = el.dataset.grade;
+  loadMorning();
+}
+
+// ════════════════ 1. 캘린더 ════════════════
+async function loadCalendar() {
+  const d = state.calendar;
+  document.getElementById('calendar-date-label').textContent = dateLabel(d);
+  const el = document.getElementById('calendar-content');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const dateStr = fmt(d);
+  const { data } = await sb.from('my_calendar')
+    .select('*').eq('date', dateStr).order('start_time', { nullsFirst: true });
+
+  if (!data || data.length === 0) {
+    el.innerHTML = emptyHtml('calendar_month', '오늘 일정이 없습니다.');
+    return;
+  }
+
+  const typeMap = { event:'회의·행사', deadline:'마감일', absence:'부재', routine:'정기', class:'수업' };
+  const badgeClass = { event:'badge-event', deadline:'badge-deadline', absence:'badge-absence', routine:'badge-routine', class:'badge-class' };
+
+  el.innerHTML = `<div class="section-card">` +
+    data.map(e => `
+      <div class="card-row">
+        <div class="time-col">
+          <div class="time-top">${e.start_time ? e.start_time.slice(0,5) : '종일'}</div>
+          ${e.end_time ? `<div class="time-bot">${e.end_time.slice(0,5)}</div>` : ''}
+        </div>
+        <div class="card-body">
+          <div class="card-title">${e.title}</div>
+          ${e.memo ? `<div class="card-sub">${e.memo}</div>` : ''}
+        </div>
+        <span class="type-badge ${badgeClass[e.type] || 'badge-event'}">${typeMap[e.type] || e.type}</span>
+      </div>`).join('') + `</div>`;
+}
+
+// ════════════════ 2. 학사일정 ════════════════
+async function loadAcademic() {
+  const d = state.academic;
+  const year = d.getFullYear(), month = d.getMonth();
+  document.getElementById('academic-month-label').textContent = `${year}년 ${month+1}월`;
+
+  const el = document.getElementById('academic-content');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const start = `${year}-${p2(month+1)}-01`;
+  const lastDay = new Date(year, month+1, 0).getDate();
+  const end   = `${year}-${p2(month+1)}-${p2(lastDay)}`;
+
+  const { data: events } = await sb.from('academic_calendar')
+    .select('*').gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx');
+
+  // 날짜→이벤트 맵
+  const eventMap = {};
+  (events || []).forEach(e => {
+    if (!eventMap[e.event_date]) eventMap[e.event_date] = [];
+    eventMap[e.event_date].push(e);
+  });
+
+  // 월 첫 날의 요일 기준 주 시작 계산 (월요일 기준)
+  const first = new Date(year, month, 1);
+  const firstDay = first.getDay(); // 0=일
+  // 월요일 기준: 첫 주 월요일 찾기
+  const startOffset = firstDay === 0 ? -6 : 1 - firstDay;
+  const gridStart = new Date(year, month, 1 + startOffset);
+
+  let html = `<table class="cal-table"><thead><tr>
+    <th>월</th><th>화</th><th>수</th><th>목</th><th>금</th>
+  </tr></thead><tbody>`;
+
+  let cur = new Date(gridStart);
+  const todayStr = fmt(new Date());
+  let inMonth = false;
+  let weekCount = 0;
+
+  while (weekCount < 7) {
+    // 이 주에 이번 달 날짜가 하나라도 있는지 확인
+    const weekHasMonth = [0,1,2,3,4].some(i => {
+      const dd = new Date(cur); dd.setDate(dd.getDate() + i);
+      return dd.getMonth() === month && dd.getFullYear() === year;
+    });
+    if (!weekHasMonth && inMonth) break;
+    if (weekHasMonth) inMonth = true;
+
+    html += '<tr>';
+    for (let i = 0; i < 5; i++) {
+      const day = new Date(cur);
+      day.setDate(day.getDate() + i);
+      const dStr = fmt(day);
+      const inCurMonth = day.getMonth() === month;
+      const isT = dStr === todayStr;
+      html += `<td class="${inCurMonth ? '' : 'outside'}">
+        <span class="day-num${isT ? ' today-circle' : ''}">${day.getDate()}</span>`;
+      if (inCurMonth && eventMap[dStr]) {
+        eventMap[dStr].forEach(ev => {
+          html += `<span class="event-pill color-${ev.color || 'GREY'}">${ev.content}</span>`;
+        });
+      }
+      html += '</td>';
+    }
+    html += '</tr>';
+    cur.setDate(cur.getDate() + 7);
+    weekCount++;
+  }
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ════════════════ 3. 일과시간표 ════════════════
+async function loadPeriods() {
+  const d = state.periods;
+  document.getElementById('periods-date-label').textContent = dateLabel(d);
+  const el = document.getElementById('periods-content');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const { data } = await sb.from('daily_schedules')
+    .select('*').eq('target_date', fmt(d)).order('display_order');
+
+  if (!data || data.length === 0) {
+    el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
+    return;
+  }
+
+  el.innerHTML = `<div class="period-card">` +
+    data.filter(r => r.period_num > 0).map(r => `
+      <div class="period-row">
+        <div class="p-num">${r.period_num}교시</div>
+        <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-event">${r.event_title || ''}</div>
+      </div>`).join('') + `</div>`;
+}
+
+// ════════════════ 4. 주간 시간표 ════════════════
+async function loadTimetable() {
+  const monday = getMonday(new Date(), state.timetableWeek);
+  const days = [0,1,2,3,4].map(i => addDays(monday, i));
+  const dates = days.map(fmt);
+  const todayStr = fmt(new Date());
+
+  document.getElementById('timetable-week-label').textContent =
+    `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
+
+  const el = document.getElementById('timetable-content');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const teacherId = me.user_metadata.teacher_id;
+  const { data } = await sb.from('daily_timetable')
+    .select('*').eq('teacher_id', teacherId).in('target_date', dates).order('period_num');
+
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="background:white; padding:48px 24px; text-align:center; color:#ccc; font-size:14px;">이번 주 수업이 없습니다.</div>';
+    return;
+  }
+
+  // 맵 구성: date → period → row
+  const map = {};
+  data.forEach(r => {
+    if (!map[r.target_date]) map[r.target_date] = {};
+    map[r.target_date][r.period_num] = r;
+  });
+
+  const maxPeriod = Math.max(...data.map(r => r.period_num));
+  const dayLabels = ['월','화','수','목','금'];
+
+  let html = `<table class="tt-table"><thead><tr><th></th>` +
+    days.map((d, i) => `<th class="${fmt(d)===todayStr?'today-col':''}">${dayLabels[i]}<br><span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth()+1)}/${p2(d.getDate())}</span></th>`).join('') +
+    `</tr></thead><tbody>`;
+
+  for (let p = 1; p <= maxPeriod; p++) {
+    html += `<tr><td class="period-col">${p}</td>`;
+    days.forEach(d => {
+      const dStr = fmt(d);
+      const cell = map[dStr]?.[p];
+      const isT = dStr === todayStr;
+      if (cell) {
+        const statusClass = cell.status !== 'normal' ? `status-${cell.status}` : (isT ? 'today-col' : '');
+        const statusTag = cell.status === 'vacated' ? '<span class="status-tag tag-vacated">결강</span>'
+          : cell.status === 'changed' ? '<span class="status-tag tag-changed">변경</span>'
+          : cell.status === 'reinforcement' ? '<span class="status-tag tag-reinforcement">보강</span>' : '';
+        html += `<td class="${statusClass}"><span class="subj">${cell.subject_name}</span><span class="cls">${cell.grade}-${cell.class_num}</span>${statusTag}</td>`;
+      } else {
+        html += `<td class="${isT ? 'today-col' : ''}"></td>`;
+      }
+    });
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ════════════════ 5. 조종례 ════════════════
+async function loadMorning() {
+  const d = state.morning;
+  document.getElementById('morning-date-label').textContent = dateLabel(d);
+  const el = document.getElementById('morning-content');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const grade = state.morningGrade;
+  const { data } = await sb.from('announcements')
+    .select('*').eq('date', fmt(d))
+    .in('target_grade', [grade, '전학년'])
+    .order('id');
+
+  if (!data || data.length === 0) {
+    el.innerHTML = emptyHtml('campaign', '이 날의 전달사항이 없습니다.');
+    return;
+  }
+
+  el.innerHTML = `<div class="morning-card">` +
+    data.map(a => `
+      <div class="morning-row">
+        <div class="morning-meta">
+          <span class="cat-badge">${a.category || '공지'}</span>
+          <span class="grade-tag">${a.target_grade}</span>
+        </div>
+        <div class="morning-title">${a.title}</div>
+        ${a.content ? `<div class="morning-content">${a.content}</div>` : ''}
+        <div class="morning-author">${a.author_name || ''}</div>
+      </div>`).join('') + `</div>`;
+}
+
+// ── 공통 empty state ──
+function emptyHtml(icon, msg) {
+  return `<div class="empty-state"><span class="material-symbols-outlined">${icon}</span><p>${msg}</p></div>`;
+}
+</script>
+</body>
+</html>
