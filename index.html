@@ -46,7 +46,7 @@
     .date-nav .nav-btn .material-symbols-outlined { font-size: 22px; }
     .date-nav .nav-btn:active { background: #f0f0f0; }
     .date-nav .date-label { font-size: 15px; font-weight: 700; color: #1a1a1a; }
-    .date-nav .today-btn { background: #e8f0fe; border: none; color: #1a73e8; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; cursor: pointer; }
+    .date-nav .today-btn, .week-nav .today-btn, .month-nav .today-btn { background: #e8f0fe; border: none; color: #1a73e8; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; cursor: pointer; }
 
     /* ── 공통 카드 ── */
     .section-card { background: white; margin: 12px 16px; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
@@ -70,6 +70,34 @@
     .loading { text-align: center; padding: 40px 24px; color: #ccc; font-size: 14px; }
     .section-label { font-size: 12px; font-weight: 700; color: #999; padding: 16px 16px 6px; text-transform: uppercase; letter-spacing: .5px; }
 
+    /* ── 캘린더 시간 그리드 ── */
+    .tg-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 8px; }
+    .tg-chip { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+    .tg-chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .tg-allday { padding: 2px 16px 6px; display: flex; flex-direction: column; gap: 4px; }
+    .tg-allday-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f8f9fa; border-radius: 8px; font-size: 12px; font-weight: 600; color: #333; }
+    .tg-wrap { display: flex; margin: 6px 12px 16px; }
+    .tg-axis { position: relative; width: 30px; flex-shrink: 0; }
+    .tg-hour-lbl { position: absolute; right: 4px; font-size: 10px; color: #ccc; font-weight: 500; transform: translateY(-50%); white-space: nowrap; }
+    .tg-col { position: relative; flex: 1; background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    .tg-grid-line { position: absolute; left: 0; right: 0; height: 1px; background: #f0f0f0; }
+    .tg-grid-line.half { background: #f8f8f8; }
+    .tg-block { position: absolute; border-radius: 5px; padding: 3px 6px; overflow: hidden; box-sizing: border-box; }
+    .tg-class   { background: #f8fafc; border-left: 3px solid #94a3b8; color: #475569; }
+    .tg-vacated { background: #fce8e6; border-left: 3px solid #c62828; }
+    .tg-changed { background: #fff8f0; border-left: 3px solid #e65100; }
+    .tg-reinf   { background: #fff1f2; border-left: 3px solid #f43f5e; color: #9f1239; }
+    .tg-sup     { background: #f3e8ff; border-left: 3px solid #a855f7; }
+    .tg-event   { background: #e8f0fe; border-left: 3px solid #1a73e8; }
+    .tg-routine { background: #e8f0fe; border-left: 3px solid #1a73e8; }
+    .tg-absence { background: #fff3e0; border-left: 3px solid #e65100; }
+    .tg-deadline{ background: #fce8e6; border-left: 3px solid #c62828; }
+    .tg-blk-title { font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tg-blk-sub   { font-size: 11px; color: #888; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tg-blk-tag   { font-size: 11px; font-weight: 700; display: inline; margin-left: 3px; }
+    .tg-now-line  { position: absolute; left: 0; right: 0; height: 2px; background: #ef4444; z-index: 5; pointer-events: none; }
+    .tg-now-line::before { content: ''; position: absolute; left: -3px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; }
+
     /* ── 학사일정 달력 ── */
     .month-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; }
     .month-nav .nav-btn { background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: #555; display: flex; align-items: center; }
@@ -77,13 +105,13 @@
     .month-nav .month-label { font-size: 16px; font-weight: 700; }
     .cal-wrap { padding: 8px 16px 16px; }
     .cal-table { width: 100%; border-collapse: collapse; }
-    .cal-table th { font-size: 11px; font-weight: 700; color: #999; text-align: center; padding: 8px 0 6px; }
-    .cal-table td { border: 1px solid #f0f0f0; vertical-align: top; padding: 5px 4px; font-size: 11px; }
+    .cal-table th { font-size: 11px; font-weight: 700; color: #999; text-align: center; padding: 8px 0 6px; width: 20%; }
+    .cal-table td { border: 1px solid #f0f0f0; vertical-align: top; padding: 5px 4px; font-size: 11px; height: 72px; }
     .day-num { font-size: 12px; font-weight: 600; color: #333; display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; margin-bottom: 2px; }
     .day-num.today-circle { background: #1a73e8; color: white; }
     .cal-table td.outside { background: #fafafa; }
     .cal-table td.outside .day-num { color: #ddd; }
-    .event-pill { display: block; font-size: 10px; padding: 1px 4px; border-radius: 3px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.5; font-weight: 500; }
+    .event-pill { display: block; font-size: 10px; padding: 1px 4px; border-radius: 3px; margin-bottom: 2px; white-space: normal; word-break: keep-all; line-height: 1.5; font-weight: 500; }
     .color-RED { color: #c62828; background: #fce8e6; }
     .color-BLUE { color: #1565c0; background: #e8f0fe; }
     .color-GREEN { color: #2e7d32; background: #e6f4ea; }
@@ -94,9 +122,11 @@
     .period-card { background: white; margin: 12px 16px; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
     .period-row { display: flex; align-items: center; padding: 13px 16px; gap: 14px; border-bottom: 1px solid #f5f5f5; }
     .period-row:last-child { border-bottom: none; }
-    .p-num { font-size: 13px; font-weight: 800; color: #1a73e8; min-width: 28px; }
-    .p-time { font-size: 13px; color: #333; flex: 1; }
-    .p-event { font-size: 12px; color: #888; max-width: 90px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .period-row-lunch { background: #fff7ed; }
+    .period-grade-btn { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1.5px solid #1a73e8; background: white; color: #1a73e8; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .p-num { font-size: 15px; font-weight: 800; color: #1a73e8; min-width: 28px; }
+    .p-time { font-size: 15px; color: #333; flex: 1; }
+    .p-event { font-size: 13px; color: #888; max-width: 90px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* ── 주간 시간표 ── */
     .week-nav { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; }
@@ -104,22 +134,37 @@
     .week-nav .nav-btn .material-symbols-outlined { font-size: 22px; }
     .week-nav .week-label { font-size: 14px; font-weight: 700; }
     .tt-scroll { overflow-x: auto; margin: 12px 16px; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-    .tt-table { min-width: 340px; border-collapse: collapse; width: 100%; background: white; }
+    .tt-table { min-width: 340px; border-collapse: collapse; width: 100%; background: white; table-layout: fixed; }
     .tt-table th { background: #f8f9fa; font-size: 11px; font-weight: 700; text-align: center; padding: 9px 4px; border-bottom: 2px solid #e8e8e8; border-right: 1px solid #f0f0f0; color: #555; }
     .tt-table th:first-child { width: 32px; color: #bbb; font-size: 10px; }
     .tt-table th.today-col { color: #1a73e8; background: #e8f0fe; }
-    .tt-table td { border: 1px solid #f0f0f0; text-align: center; padding: 8px 3px; vertical-align: middle; min-height: 52px; font-size: 11px; }
-    .tt-table td.period-col { color: #1a73e8; font-weight: 700; background: #f8f9fa; font-size: 11px; }
-    .tt-table td .subj { font-weight: 700; color: #1a1a1a; display: block; line-height: 1.3; }
-    .tt-table td .cls { color: #999; font-size: 10px; display: block; margin-top: 2px; }
-    .tt-table td.status-vacated { background: #fce8e6; }
-    .tt-table td.status-changed { background: #fff3e0; }
-    .tt-table td.status-reinforcement { background: #e6f4ea; }
-    .tt-table td.today-col { background: #f5f9ff; }
-    .status-tag { font-size: 9px; display: block; margin-top: 1px; font-weight: 600; }
-    .tag-vacated { color: #c62828; }
-    .tag-changed { color: #e65100; }
-    .tag-reinforcement { color: #2e7d32; }
+    .tt-table td { border: 1px solid #e2e8f0; text-align: center; padding: 0; vertical-align: middle; height: 46px; font-size: 11px; }
+    .tt-table td.period-col { color: #64748b; font-weight: 700; background: #f9fafb; font-size: 11px; width: 26px; padding: 0 4px; }
+    .tt-mc  { position: relative; width: 100%; height: 100%; }
+    .tt-bb  { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2px; border-radius: 3px; overflow: hidden; gap: 1px; }
+    .tt-bt  { font-size: 0.78rem; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; line-height: 1.1; text-align: center; }
+    .tt-bs  { font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; line-height: 1; text-align: center; color: #515154; }
+    .tt-c-normal  { background: #e8f2fc; box-shadow: inset 0 0 0 1px #c2deff; }
+    .tt-c-normal .tt-bt  { color: #0071e3; }
+    .tt-c-changed { background: #fef9c3; box-shadow: inset 0 0 0 1px #fde047; }
+    .tt-c-changed .tt-bt { color: #854d0e; }
+    .tt-c-changed .tt-bs { color: #a16207; }
+    .tt-c-reinf   { background: #ffe4e6; box-shadow: inset 0 0 0 1px #fda4af; }
+    .tt-c-reinf .tt-bt   { color: #e11d48; }
+    .tt-c-sup     { background: #f3e8ff; box-shadow: inset 0 0 0 1px #d8b4fe; }
+    .tt-c-sup .tt-bt     { color: #6b21a8; }
+    .tt-c-vacated { background: #fffdf2; position: relative; }
+    .tt-c-vacated::after { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; border: 2px dashed #fde047; border-radius: 4px; background: rgba(254,249,195,0.15); }
+    .tt-c-vacated-reinf { background: #fff5f5; position: relative; }
+    .tt-c-vacated-reinf::after { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; border: 2px dashed #fca5a5; border-radius: 4px; }
+    .tt-c-event   { background: #e8fcf0; box-shadow: inset 0 0 0 1px #bbf7d0; }
+    .tt-c-event .tt-bt   { color: #15803d; font-weight: 900; }
+    .tt-c-empty   { background: #f9f9f9; }
+    .tt-c-nodata  { background: #f9f9f9; border: none !important; }
+    .tt-bdg { font-size: 0.5rem; padding: 0 2px; border-radius: 2px; margin-left: 2px; font-weight: 900; vertical-align: middle; color: white; display: inline-block; }
+    .tt-bdg-reinf { background: #e11d48; }
+    .tt-bdg-im    { background: #a855f7; }
+    .tt-bdg-chg   { background: #f57f17; }
 
     /* ── 조종례 ── */
     .grade-tab-bar { display: flex; padding: 10px 16px 0; gap: 8px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 52px; z-index: 9; }
@@ -199,6 +244,7 @@
       <div class="month-nav">
         <button class="nav-btn" onclick="moveMonth(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
         <span class="month-label" id="academic-month-label"></span>
+        <button class="today-btn" onclick="goToday('academic')">이번 달</button>
         <button class="nav-btn" onclick="moveMonth(1)"><span class="material-symbols-outlined">chevron_right</span></button>
       </div>
       <div class="cal-wrap"><div id="academic-content"></div></div>
@@ -247,20 +293,20 @@
   <!-- 하단 네비게이션 -->
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="switchTab('calendar', this)">
-      <span class="material-symbols-outlined">calendar_month</span>
-      <span class="nav-label">캘린더</span>
+      <span class="material-symbols-outlined">team_dashboard</span>
+      <span class="nav-label">내 일정</span>
     </button>
     <button class="nav-item" onclick="switchTab('academic', this)">
-      <span class="material-symbols-outlined">event_note</span>
+      <span class="material-symbols-outlined">calendar_month</span>
       <span class="nav-label">학사일정</span>
     </button>
     <button class="nav-item" onclick="switchTab('periods', this)">
-      <span class="material-symbols-outlined">schedule</span>
-      <span class="nav-label">일과시간</span>
+      <span class="material-symbols-outlined">acute</span>
+      <span class="nav-label">일과시간표</span>
     </button>
     <button class="nav-item" onclick="switchTab('timetable', this)">
-      <span class="material-symbols-outlined">view_week</span>
-      <span class="nav-label">시간표</span>
+      <span class="material-symbols-outlined">schedule</span>
+      <span class="nav-label">수업시간표</span>
     </button>
     <button class="nav-item" onclick="switchTab('morning', this)">
       <span class="material-symbols-outlined">campaign</span>
@@ -283,7 +329,7 @@ const state = {
   morning:  new Date(),
   academic: new Date(),
   timetableWeek: 0,
-  morningGrade: '1학년',
+  morningGrade: localStorage.getItem('morningGrade') || '1학년',
 };
 
 // ── 유틸 ──
@@ -371,11 +417,17 @@ function showApp(user) {
   sb.from('schools').select('name').eq('id', user.user_metadata.school_id).single()
     .then(({ data }) => { if (data) document.getElementById('header-school').textContent = data.name; });
 
+  const savedGrade = state.morningGrade;
+  document.querySelectorAll('.grade-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.grade === savedGrade);
+  });
+
   loadTab('calendar');
 }
 
 // ── 탭 전환 ──
 function switchTab(tab, btn) {
+  if (_calTimer) { clearInterval(_calTimer); _calTimer = null; }
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -415,44 +467,287 @@ function selectGrade(el) {
   document.querySelectorAll('.grade-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   state.morningGrade = el.dataset.grade;
+  localStorage.setItem('morningGrade', state.morningGrade);
   loadMorning();
 }
 
 // ════════════════ 1. 캘린더 ════════════════
+let _calTimer = null;
+
 async function loadCalendar() {
+  if (_calTimer) { clearInterval(_calTimer); _calTimer = null; }
   const d = state.calendar;
   document.getElementById('calendar-date-label').textContent = dateLabel(d);
   const el = document.getElementById('calendar-content');
   el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const dateStr = fmt(d);
-  const { data } = await sb.from('my_calendar')
-    .select('*').eq('date', dateStr).order('start_time', { nullsFirst: true });
+  const schoolId = me.user_metadata.school_id;
+  const teacherId = me.user_metadata.teacher_id;
 
-  if (!data || data.length === 0) {
+  const [acRes, calRes, ttRes, schRes] = await Promise.all([
+    sb.from('academic_calendar').select('*')
+      .eq('school_id', schoolId).eq('event_date', dateStr).order('order_idx'),
+    sb.from('my_calendar').select('*')
+      .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
+      .eq('date', dateStr).in('type', ['event','routine','absence','deadline'])
+      .order('start_time', { nullsFirst: true }),
+    sb.from('daily_timetable').select('*')
+      .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
+      .eq('target_date', dateStr).order('period_num'),
+    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade')
+      .eq('school_id', schoolId).eq('target_date', dateStr).gt('period_num', 0)
+      .order('display_order')
+  ]);
+
+  const academics   = acRes.data  || [];
+  const personalEvs = calRes.data || [];
+  const timetable   = ttRes.data  || [];
+  const schedules   = schRes.data || [];
+
+  // 학년별 교시 시간 맵: grade → { period_num → {start, end} }
+  // 학년마다 일과 시간이 다를 수 있으므로(고사·행사 등) 인스턴스 학년 기준으로 조회
+  const gradeTimeMap = {};
+  schedules.forEach(s => {
+    const g = String(s.target_grade);
+    if (!gradeTimeMap[g]) gradeTimeMap[g] = {};
+    if (!gradeTimeMap[g][s.period_num])
+      gradeTimeMap[g][s.period_num] = { start: s.start_time, end: s.end_time };
+  });
+  // 폴백용 전체 맵 (학년 정보 없는 인스턴스 대비)
+  const periodTimeMap = {};
+  Object.values(gradeTimeMap).forEach(gMap => {
+    Object.entries(gMap).forEach(([p, t]) => {
+      if (!periodTimeMap[p]) periodTimeMap[p] = t;
+    });
+  });
+
+  // 학년별 스케줄 맵: 단축 수업 감지용 (grade → [{display_order, period_num}])
+  const gradeSchedsMap = {};
+  schedules.forEach(s => {
+    const g = String(s.target_grade);
+    if (!gradeSchedsMap[g]) gradeSchedsMap[g] = [];
+    gradeSchedsMap[g].push(s);
+  });
+
+  const isHoliday = academics.some(ac => {
+    const c = (ac.color || '').trim().toLowerCase();
+    return c === '#e74c3c' || c === '#ef4444' || c === 'red';
+  });
+
+  const events = [];
+  if (!isHoliday) {
+    // vacated/absent 교시 집합 — 같은 교시의 normal 인스턴스 억제
+    const vacatedPeriods = new Set(
+      timetable.filter(t => t.status === 'vacated' || t.status === 'absent').map(t => t.period_num)
+    );
+    // fixed_ 과목: 같은 교시에 여러 학급이 있어도 하나의 블록만 표시 (N개 학급)
+    const fixedCount = {};
+    timetable.forEach(t => {
+      if (!t.subject_name.startsWith('fixed_')) return;
+      if (t.status === 'vacated' || t.status === 'absent') return;
+      const key = `${t.period_num}_${t.subject_name}`;
+      fixedCount[key] = (fixedCount[key] || 0) + 1;
+    });
+    const fixedSeen = new Set();
+
+    timetable.forEach(t => {
+      if (t.status === 'vacated' || t.status === 'absent') return;
+      if (t.status === 'normal' && vacatedPeriods.has(t.period_num)) return;
+      // 단축 수업 감지: 해당 학년의 maxDisplayOrder를 초과하는 교시는 표시 안 함
+      if (parseInt(t.grade) > 0) {
+        const gradeStr = String(t.grade);
+        const gScheds = gradeSchedsMap[gradeStr] || gradeSchedsMap['all'] || [];
+        if (gScheds.length > 0) {
+          const maxDo = Math.max(...gScheds.map(s => parseInt(s.display_order) || 0));
+          const isMapped = gScheds.some(s => parseInt(s.period_num) === parseInt(t.period_num));
+          if (parseInt(t.period_num) > maxDo && !isMapped) return;
+        }
+      }
+      // 학년별 시간 우선, 없으면 'all' → 전체 폴백
+      const gradeStr = String(t.grade || '');
+      const times = (gradeTimeMap[gradeStr] && gradeTimeMap[gradeStr][t.period_num])
+        || (gradeTimeMap['all'] && gradeTimeMap['all'][t.period_num])
+        || periodTimeMap[t.period_num];
+      if (!times || !times.start || !times.end) return;
+      const [sH, sM] = times.start.split(':').map(Number);
+      const [eH, eM] = times.end.split(':').map(Number);
+      const isSup = t.subject_name.startsWith('supervision_');
+      const isFixed = t.subject_name.startsWith('fixed_');
+      // fixed_ 과목은 교시당 첫 번째 하나만 추가
+      if (isFixed) {
+        const key = `${t.period_num}_${t.subject_name}`;
+        if (fixedSeen.has(key)) return;
+        fixedSeen.add(key);
+      }
+      const cnt = isFixed ? (fixedCount[`${t.period_num}_${t.subject_name}`] || 1) : 0;
+      events.push({
+        type: 'class', status: t.status, isSup, isFixed,
+        title: t.subject_name.replace(/^(supervision_|fixed_)/, ''), period_num: t.period_num,
+        grade: t.grade, class_num: t.class_num, fixedCount: cnt,
+        start: times.start.slice(0,5), end: times.end.slice(0,5),
+        startMins: sH*60+sM, endMins: eH*60+eM
+      });
+    });
+  }
+
+  const allDayEvs = [];
+  personalEvs.forEach(e => {
+    if (!e.start_time) { allDayEvs.push(e); return; }
+    const [sH, sM] = e.start_time.split(':').map(Number);
+    const [eH, eM] = (e.end_time || e.start_time).split(':').map(Number);
+    events.push({
+      type: e.type, status: null,
+      title: e.title, memo: e.memo || '',
+      start: e.start_time.slice(0,5),
+      end: (e.end_time || e.start_time).slice(0,5),
+      startMins: sH*60+sM,
+      endMins: (e.end_time ? eH*60+eM : sH*60+sM+60)
+    });
+  });
+
+  renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay: fmt(new Date()) === dateStr });
+}
+
+function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay }) {
+  const PX = 1.2, SH = 8, EH = 18;
+  const calcY = mins => Math.max(0, (mins - SH*60) * PX);
+  const gridH  = (EH - SH) * 60 * PX;
+
+  if (academics.length === 0 && events.length === 0 && allDayEvs.length === 0) {
     el.innerHTML = emptyHtml('calendar_month', '오늘 일정이 없습니다.');
     return;
   }
 
-  const typeMap = { event:'회의·행사', deadline:'마감일', absence:'부재', routine:'정기', class:'수업' };
-  const badgeClass = { event:'badge-event', deadline:'badge-deadline', absence:'badge-absence', routine:'badge-routine', class:'badge-class' };
+  let html = '';
 
-  el.innerHTML = `<div class="section-card">` +
-    data.map(e => `
-      <div class="card-row">
-        <div class="time-col">
-          <div class="time-top">${e.start_time ? e.start_time.slice(0,5) : '종일'}</div>
-          ${e.end_time ? `<div class="time-bot">${e.end_time.slice(0,5)}</div>` : ''}
-        </div>
-        <div class="card-body">
-          <div class="card-title">${e.title}</div>
-          ${e.memo ? `<div class="card-sub">${e.memo}</div>` : ''}
-        </div>
-        <span class="type-badge ${badgeClass[e.type] || 'badge-event'}">${typeMap[e.type] || e.type}</span>
-      </div>`).join('') + `</div>`;
+  // 학사일정 칩
+  if (academics.length > 0) {
+    html += '<div class="tg-chips">';
+    academics.forEach(ac => {
+      const bg = ac.color ? ac.color + '22' : '#f1f3f4';
+      html += `<span class="tg-chip" style="color:${ac.color||'#555'};background:${bg};">
+        <span class="tg-chip-dot" style="background:${ac.color||'#bbb'};"></span>${ac.content}</span>`;
+    });
+    html += '</div>';
+  }
+
+  // 종일 개인 일정
+  if (allDayEvs.length > 0) {
+    const colorMap = { event:'#1a73e8', routine:'#1a73e8', absence:'#e65100', deadline:'#c62828' };
+    html += '<div class="tg-allday">';
+    allDayEvs.forEach(e => {
+      const c = colorMap[e.type] || '#555';
+      html += `<div class="tg-allday-row" style="border-left:3px solid ${c};">
+        <span style="flex:1;">${e.title}</span><span style="font-size:11px;color:#aaa;">종일</span></div>`;
+    });
+    html += '</div>';
+  }
+
+  // 시간 그리드
+  html += `<div class="tg-wrap"><div class="tg-axis" style="height:${gridH}px;">`;
+  for (let h = SH; h <= EH; h++)
+    html += `<div class="tg-hour-lbl" style="top:${calcY(h*60)}px;">${String(h).padStart(2,'0')}</div>`;
+  html += `</div><div class="tg-col" id="tg-col" style="height:${gridH}px;">`;
+  for (let h = SH; h <= EH; h++) {
+    html += `<div class="tg-grid-line" style="top:${calcY(h*60)}px;"></div>`;
+    if (h < EH) html += `<div class="tg-grid-line half" style="top:${calcY(h*60+30)}px;"></div>`;
+  }
+  html += '</div></div>';
+
+  el.innerHTML = html;
+
+  const col = document.getElementById('tg-col');
+  if (!col) return;
+
+  // 보이는 이벤트만 필터 + 시간순 정렬
+  const visible = events.filter(ev => ev.startMins < EH*60 && ev.endMins > SH*60);
+  visible.sort((a, b) => a.startMins - b.startMins || b.endMins - a.endMins);
+
+  // 트랙(컬럼) 배정
+  const colEnds = [];
+  visible.forEach(ev => {
+    let c = colEnds.findIndex(end => end <= ev.startMins);
+    if (c === -1) { c = colEnds.length; colEnds.push(0); }
+    ev._c = c; colEnds[c] = ev.endMins;
+  });
+
+  // Union-Find로 겹치는 이벤트 그룹화 → 그룹 내 최대 컬럼 수 산출
+  const par = visible.map((_, i) => i);
+  const uf  = x => par[x] === x ? x : (par[x] = uf(par[x]));
+  for (let i = 0; i < visible.length; i++)
+    for (let j = i+1; j < visible.length; j++)
+      if (visible[i].startMins < visible[j].endMins && visible[j].startMins < visible[i].endMins)
+        par[uf(i)] = uf(j);
+  const gMax = {};
+  visible.forEach((ev, i) => { const g = uf(i); gMax[g] = Math.max(gMax[g]||0, ev._c); });
+  visible.forEach((ev, i) => { ev._nc = (gMax[uf(i)]||0)+1; });
+
+  visible.forEach(ev => {
+    const topY = calcY(Math.max(ev.startMins, SH*60));
+    const botY = calcY(Math.min(ev.endMins, EH*60));
+    const bH   = Math.max(botY - topY, 20);
+    const cW   = 100 / (ev._nc||1);
+
+    const block = document.createElement('div');
+    block.className = 'tg-block';
+    if (ev.type === 'class') {
+      block.classList.add(
+        ev.status === 'reinforcement' ? 'tg-reinf'   :
+        ev.status === 'changed'       ? 'tg-changed' :
+        ev.isSup                      ? 'tg-sup'     : 'tg-class'
+      );
+    } else {
+      block.classList.add('tg-' + (ev.type || 'event'));
+    }
+    block.style.cssText =
+      `top:${topY}px;height:${bH}px;width:calc(${cW}% - 3px);left:calc(${cW*(ev._c||0)}% + 1px);`;
+
+    let titleStr = ev.title;
+    let sub = '';
+    if (ev.type === 'class') {
+      const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
+      titleStr = (ev.period_num ? `${ev.period_num}교시 ` : '') + ev.title + gradeStr;
+      if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
+      else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
+      else if (ev.isSup)                       sub = '<span class="tg-blk-tag" style="color:#6a1b9a;">임장</span>';
+    }
+    block.innerHTML =
+      `<div class="tg-blk-title" style="font-size:${bH<24?'12px':'13px'};">${titleStr}${sub}</div>` +
+      (bH >= 28 ? `<div class="tg-blk-sub">${ev.start}–${ev.end}</div>` : '');
+    col.appendChild(block);
+  });
+
+  if (isCurrentDay) {
+    _calUpdateNowLine();
+    _calTimer = setInterval(_calUpdateNowLine, 60000);
+  }
+}
+
+function _calUpdateNowLine() {
+  const col = document.getElementById('tg-col');
+  if (!col) { if (_calTimer) { clearInterval(_calTimer); _calTimer = null; } return; }
+  const PX = 1.2, SH = 8, EH = 18;
+  let line = col.querySelector('.tg-now-line');
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  if (h < SH || h >= EH) { if (line) line.remove(); return; }
+  if (!line) { line = document.createElement('div'); line.className = 'tg-now-line'; col.appendChild(line); }
+  line.style.top = Math.max(0, (h*60+m - SH*60) * PX) + 'px';
 }
 
 // ════════════════ 2. 학사일정 ════════════════
+function isRedColor(hex) {
+  const c = (hex || '').trim().toLowerCase();
+  if (c === 'red') return true;
+  const m = c.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return false;
+  const r = parseInt(m[1].substr(0,2), 16);
+  const g = parseInt(m[1].substr(2,2), 16);
+  const b = parseInt(m[1].substr(4,2), 16);
+  return r > 160 && r > g * 1.8 && r > b * 1.8;
+}
+
 async function loadAcademic() {
   const d = state.academic;
   const year = d.getFullYear(), month = d.getMonth();
@@ -466,7 +761,7 @@ async function loadAcademic() {
   const end   = `${year}-${p2(month+1)}-${p2(lastDay)}`;
 
   const { data: events } = await sb.from('academic_calendar')
-    .select('*').gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx');
+    .select('*').eq('school_id', me.user_metadata.school_id).gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx');
 
   // 날짜→이벤트 맵
   const eventMap = {};
@@ -507,13 +802,16 @@ async function loadAcademic() {
       const dStr = fmt(day);
       const inCurMonth = day.getMonth() === month;
       const isT = dStr === todayStr;
+      const dayEvents = (inCurMonth && eventMap[dStr]) ? eventMap[dStr] : [];
+      const hasHoliday = dayEvents.some(ev => isRedColor(ev.color));
+      const dayNumStyle = (!isT && hasHoliday) ? ' style="color:#e74c3c;"' : '';
       html += `<td class="${inCurMonth ? '' : 'outside'}">
-        <span class="day-num${isT ? ' today-circle' : ''}">${day.getDate()}</span>`;
-      if (inCurMonth && eventMap[dStr]) {
-        eventMap[dStr].forEach(ev => {
-          html += `<span class="event-pill color-${ev.color || 'GREY'}">${ev.content}</span>`;
-        });
-      }
+        <span class="day-num${isT ? ' today-circle' : ''}"${dayNumStyle}>${day.getDate()}</span>`;
+      dayEvents.forEach(ev => {
+        const color = ev.color || '#95a5a6';
+        const bg = color + '22';
+        html += `<span class="event-pill" style="color:${color};background:${bg};">${ev.content}</span>`;
+      });
       html += '</td>';
     }
     html += '</tr>';
@@ -526,6 +824,23 @@ async function loadAcademic() {
 }
 
 // ════════════════ 3. 일과시간표 ════════════════
+function _periodGradeSelect(uid, grade) {
+  const warn  = document.getElementById(`${uid}_warn`);
+  const sched = document.getElementById(`${uid}_sched`);
+  if (warn)  warn.style.display  = 'none';
+  if (sched) sched.style.display = '';
+  document.querySelectorAll(`[id^="${uid}_tbl_"]`).forEach(el => el.style.display = 'none');
+  const tbl = document.getElementById(`${uid}_tbl_${grade}`);
+  if (tbl) tbl.style.display = '';
+  document.querySelectorAll(`[id^="${uid}_btn_"]`).forEach(btn => {
+    btn.style.background = 'white'; btn.style.color = '#1a73e8';
+  });
+  const btn = document.getElementById(`${uid}_btn_${grade}`);
+  if (btn) { btn.style.background = '#1a73e8'; btn.style.color = 'white'; }
+  const el = document.getElementById('periods-content');
+  if (el) el.scrollTop = 0;
+}
+
 async function loadPeriods() {
   const d = state.periods;
   document.getElementById('periods-date-label').textContent = dateLabel(d);
@@ -533,28 +848,145 @@ async function loadPeriods() {
   el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const { data } = await sb.from('daily_schedules')
-    .select('*').eq('target_date', fmt(d)).order('display_order');
+    .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order');
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
     return;
   }
 
-  el.innerHTML = `<div class="period-card">` +
-    data.filter(r => r.period_num > 0).map(r => `
-      <div class="period-row">
-        <div class="p-num">${r.period_num}교시</div>
-        <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
-        <div class="p-event">${r.event_title || ''}</div>
-      </div>`).join('') + `</div>`;
+  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
+  // 전일제: period_num=0 이고 event_title 있는 행 (전체 공통)
+  const fullDayRow = data.find(r => parseInt(r.period_num) === 0 && r.event_title && !r.is_separate);
+  if (fullDayRow) {
+    el.innerHTML = `<div class="period-card">
+      <div class="period-row" style="background:#e8fcf0;">
+        <div class="p-num" style="color:#15803d;">${fullDayRow.event_title}</div>
+        <div class="p-time" style="color:#15803d;">${fullDayRow.start_time} ~ ${fullDayRow.end_time}</div>
+        <div class="p-event"></div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // 'all' 학년 행
+  const allRows = data
+    .filter(r => r.target_grade === 'all' && parseInt(r.period_num) > 0)
+    .sort((a, b) => a.display_order - b.display_order);
+
+  // 학년별 행 (target_grade !== 'all')
+  const gradeRows = data.filter(r => r.target_grade !== 'all' && parseInt(r.period_num) > 0);
+
+  // 학년별 시간이 다른지 확인
+  if (gradeRows.length > 0) {
+    const checkByOrder = {};
+    [...allRows, ...gradeRows].forEach(s => {
+      const key = s.display_order;
+      if (!checkByOrder[key]) checkByOrder[key] = new Set();
+      checkByOrder[key].add(`${s.start_time}~${s.end_time}`);
+    });
+    if (Object.values(checkByOrder).some(set => set.size > 1)) {
+      const grades = [...new Set(gradeRows.map(s => s.target_grade))].sort();
+      const uid = `pg_${fmt(d).replace(/-/g, '')}`;
+
+      const buildGradeCard = grade => {
+        const rows = gradeRows
+          .filter(s => s.target_grade === grade)
+          .sort((a, b) => a.display_order - b.display_order);
+        let t = '<div class="period-card">';
+        rows.forEach((r, i) => {
+          t += `<div class="period-row">
+            <div class="p-num">${i + 1}교시</div>
+            <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+            <div class="p-event">${r.event_title || ''}</div>
+          </div>`;
+          if (i < rows.length - 1) {
+            const gap = toMins(rows[i + 1].start_time) - toMins(r.end_time);
+            if (gap >= 40) {
+              t += `<div class="period-row period-row-lunch">
+                <div class="p-num" style="color:#c2410c;">점심</div>
+                <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${rows[i + 1].start_time}</div>
+                <div class="p-event"></div>
+              </div>`;
+            }
+          }
+        });
+        t += '</div>';
+        return t;
+      };
+
+      // ① 경고 섹션
+      let html = `<div id="${uid}_warn" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:#fff5f5;border-radius:12px;margin:12px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="material-symbols-outlined" style="color:#f43f5e;font-size:18px;">warning</span>
+          <span style="font-size:13px;color:#9f1239;font-weight:600;">학년별로 일과 시간이 다릅니다.</span>
+        </div>
+        <div style="display:flex;gap:6px;">`;
+      grades.forEach(g => {
+        html += `<button class="period-grade-btn" onclick="_periodGradeSelect('${uid}','${g}')">${g}학년</button>`;
+      });
+      html += `</div></div>`;
+
+      // ② 시간표 섹션
+      html += `<div id="${uid}_sched" style="display:none;">`;
+      grades.forEach(g => {
+        html += `<div id="${uid}_tbl_${g}" style="display:none;">${buildGradeCard(g)}</div>`;
+      });
+      html += `<div style="display:flex;gap:6px;padding:10px 16px 14px;justify-content:center;">`;
+      grades.forEach(g => {
+        html += `<button class="period-grade-btn" id="${uid}_btn_${g}" onclick="_periodGradeSelect('${uid}','${g}')">${g}학년</button>`;
+      });
+      html += `</div></div>`;
+
+      el.innerHTML = html;
+      return;
+    }
+  }
+
+  // 공통 일과 (all 또는 모든 학년 동일)
+  let displayRows = allRows;
+  if (displayRows.length === 0 && gradeRows.length > 0) {
+    const firstGrade = gradeRows[0].target_grade;
+    displayRows = gradeRows
+      .filter(s => s.target_grade === firstGrade)
+      .sort((a, b) => a.display_order - b.display_order);
+  }
+  if (displayRows.length === 0) {
+    el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
+    return;
+  }
+
+  let html = '<div class="period-card">';
+  displayRows.forEach((r, i) => {
+    html += `<div class="period-row">
+      <div class="p-num">${i + 1}교시</div>
+      <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+      <div class="p-event">${r.event_title || ''}</div>
+    </div>`;
+    if (i < displayRows.length - 1) {
+      const gap = toMins(displayRows[i + 1].start_time) - toMins(r.end_time);
+      if (gap >= 40) {
+        html += `<div class="period-row period-row-lunch">
+          <div class="p-num" style="color:#c2410c;">점심</div>
+          <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${displayRows[i + 1].start_time}</div>
+          <div class="p-event"></div>
+        </div>`;
+      }
+    }
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ════════════════ 4. 주간 시간표 ════════════════
 async function loadTimetable() {
   const monday = getMonday(new Date(), state.timetableWeek);
-  const days = [0,1,2,3,4].map(i => addDays(monday, i));
-  const dates = days.map(fmt);
+  const days   = [0,1,2,3,4].map(i => addDays(monday, i));
+  const dates  = days.map(fmt);
   const todayStr = fmt(new Date());
+  const schoolId = me.user_metadata.school_id;
+  const teacherId = String(me.user_metadata.teacher_id);
 
   document.getElementById('timetable-week-label').textContent =
     `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
@@ -562,50 +994,216 @@ async function loadTimetable() {
   const el = document.getElementById('timetable-content');
   el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
-  const teacherId = me.user_metadata.teacher_id;
-  const { data } = await sb.from('daily_timetable')
-    .select('*').eq('teacher_id', teacherId).in('target_date', dates).order('period_num');
+  const [ttRes, schRes] = await Promise.all([
+    // 내 수업 + 내 결강 슬롯을 보강하는 타인의 인스턴스(changed_user_id = me) 함께 조회
+    sb.from('daily_timetable').select('*')
+      .eq('school_id', schoolId).in('target_date', dates)
+      .or(`teacher_id.eq.${teacherId},and(changed_user_id.eq.${teacherId},status.eq.reinforcement)`),
+    sb.from('daily_schedules').select('*')
+      .eq('school_id', schoolId).in('target_date', dates)
+  ]);
 
-  if (!data || data.length === 0) {
-    el.innerHTML = '<div style="background:white; padding:48px 24px; text-align:center; color:#ccc; font-size:14px;">이번 주 수업이 없습니다.</div>';
+  const allInst   = ttRes.data  || [];
+  const allScheds = schRes.data || [];
+
+  // hiddenIds: vacated 인스턴스와 동일 서명(교사+학년+반+날짜+교시)의 normal을 숨김
+  const hiddenIds = new Set();
+  const vacSigs   = new Set();
+  allInst.filter(i => i.status === 'vacated' || i.status === 'absent').forEach(i =>
+    vacSigs.add(`${i.teacher_id}_${i.grade}_${i.class_num}_${i.target_date}_${i.period_num}`)
+  );
+  allInst.filter(i => i.status === 'normal').forEach(i => {
+    if (vacSigs.has(`${i.teacher_id}_${i.grade}_${i.class_num}_${i.target_date}_${i.period_num}`))
+      hiddenIds.add(i.internal_id);
+  });
+
+  // maxRows: display_order 최대값
+  const maxRows = allScheds.length > 0
+    ? Math.max(...allScheds.map(s => parseInt(s.display_order) || 0))
+    : 0;
+
+  // effMax: schedule 행수와 실제 수업 교시수 중 큰 값 (다른 날의 7교시 누락 방지)
+  const maxInstPeriod = allInst.length > 0
+    ? Math.max(0, ...allInst.filter(i => parseInt(i.period_num) > 0).map(i => parseInt(i.period_num)))
+    : 0;
+  const effMax = Math.max(maxRows, maxInstPeriod) || 7;
+
+  if (effMax === 7 && allInst.length === 0) {
+    el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">이번 주 수업이 없습니다.</div>';
     return;
   }
 
-  // 맵 구성: date → period → row
-  const map = {};
-  data.forEach(r => {
-    if (!map[r.target_date]) map[r.target_date] = {};
-    map[r.target_date][r.period_num] = r;
+  // 전일제 스팬 셀 사전 계산 — rowspan 하나로 열 전체를 녹색 블록 처리
+  const spanCells = {};
+  days.forEach(d => {
+    const dStr = fmt(d);
+    const ds = allScheds.filter(s => s.target_date === dStr);
+    const fullDay = ds.find(s => parseInt(s.period_num) === 0 && s.event_title && !s.is_separate);
+    if (fullDay) {
+      const evT = fullDay.event_short_name || fullDay.event_title;
+      spanCells[dStr] = `<td rowspan="${effMax}" class="tt-mc tt-c-event"
+        style="text-align:center;vertical-align:middle;padding:4px;">
+        <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;color:#15803d;">${evT}</span>
+      </td>`;
+    }
   });
 
-  const maxPeriod = Math.max(...data.map(r => r.period_num));
   const dayLabels = ['월','화','수','목','금'];
-
-  let html = `<table class="tt-table"><thead><tr><th></th>` +
-    days.map((d, i) => `<th class="${fmt(d)===todayStr?'today-col':''}">${dayLabels[i]}<br><span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth()+1)}/${p2(d.getDate())}</span></th>`).join('') +
-    `</tr></thead><tbody>`;
-
-  for (let p = 1; p <= maxPeriod; p++) {
-    html += `<tr><td class="period-col">${p}</td>`;
+  let html = `<table class="tt-table"><thead><tr><th></th>`;
+  days.forEach((d, i) => {
+    const dStr = fmt(d);
+    html += `<th class="${dStr===todayStr?'today-col':''}">${dayLabels[i]}<br>
+      <span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth()+1)}/${p2(d.getDate())}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  for (let row = 1; row <= effMax; row++) {
+    html += `<tr><td class="period-col">${row}</td>`;
     days.forEach(d => {
       const dStr = fmt(d);
-      const cell = map[dStr]?.[p];
-      const isT = dStr === todayStr;
-      if (cell) {
-        const statusClass = cell.status !== 'normal' ? `status-${cell.status}` : (isT ? 'today-col' : '');
-        const statusTag = cell.status === 'vacated' ? '<span class="status-tag tag-vacated">결강</span>'
-          : cell.status === 'changed' ? '<span class="status-tag tag-changed">변경</span>'
-          : cell.status === 'reinforcement' ? '<span class="status-tag tag-reinforcement">보강</span>' : '';
-        html += `<td class="${statusClass}"><span class="subj">${cell.subject_name}</span><span class="cls">${cell.grade}-${cell.class_num}</span>${statusTag}</td>`;
-      } else {
-        html += `<td class="${isT ? 'today-col' : ''}"></td>`;
+      if (spanCells[dStr]) {
+        if (row === 1) html += spanCells[dStr]; // rowspan이 나머지 행 커버
+        return;
       }
+      html += buildMobileCell(dStr, row, allInst, allScheds, hiddenIds, teacherId);
     });
-    html += '</tr>';
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+}
+
+function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teacherId) {
+  const dayScheds = allScheds.filter(s => s.target_date === dateStr);
+
+  // display_order → period_num 매핑 (target_grade='all' 행 우선)
+  const schedEntry = dayScheds.find(s =>
+    s.target_grade === 'all' && parseInt(s.display_order) === rowOrder && parseInt(s.period_num) > 0
+  ) || dayScheds.find(s => parseInt(s.display_order) === rowOrder) || null;
+
+  let actualPeriod = rowOrder;
+  if (schedEntry && parseInt(schedEntry.period_num) > 0)
+    actualPeriod = parseInt(schedEntry.period_num);
+
+  let isEventSlot = !!(schedEntry && schedEntry.event_title && schedEntry.event_title.trim() !== '');
+
+  // 이 display_order의 모든 학년이 임장 없는 행사인지 (교사 뷰 녹색 블록)
+  const periodScheds = dayScheds.filter(s =>
+    parseInt(s.display_order) === rowOrder && parseInt(s.period_num) !== 0
+  );
+  const isAllGradeEvent = periodScheds.length > 0 &&
+    periodScheds.every(s => s.event_title && s.event_title.trim() !== '' && !s.is_separate);
+  const allGradeShort = isAllGradeEvent
+    ? (periodScheds[0].event_short_name || periodScheds[0].event_title.slice(0, 4))
+    : '';
+
+  // 이 날 일과 데이터가 있는데 display_order를 초과하면 빈 셀
+  if (dayScheds.length > 0) {
+    const dayMax = Math.max(...dayScheds.map(s => parseInt(s.display_order) || 0));
+    if (rowOrder > dayMax) return `<td class="tt-c-nodata"></td>`;
   }
 
-  html += '</tbody></table>';
-  el.innerHTML = html;
+  // 이 교사·날짜·교시의 인스턴스 수집
+  let raw = allInst.filter(i =>
+    i.target_date === dateStr && parseInt(i.period_num) === actualPeriod
+  );
+
+  // 학년별 일과가 분리된 경우:
+  // (1) 단축 수업: 해당 학년의 maxDisplayOrder < rowOrder → 인스턴스 제거
+  // (2) 행사 교시: 교사의 담당 학년에 event_title 있으면 isEventSlot=true
+  {
+    const shortenedGrades = new Set();
+    raw.filter(i => parseInt(i.grade) > 0).forEach(i => {
+      const gradeStr = String(i.grade);
+      const gScheds = dayScheds.filter(s => String(s.target_grade) === gradeStr);
+      if (gScheds.length > 0) {
+        const maxDo = Math.max(...gScheds.map(s => parseInt(s.display_order) || 0));
+        const isMapped = gScheds.some(s => parseInt(s.period_num) === parseInt(i.period_num) && parseInt(s.period_num) > 0);
+        if (rowOrder > maxDo && !isMapped) shortenedGrades.add(gradeStr);
+      }
+    });
+    if (shortenedGrades.size > 0) raw = raw.filter(i => !shortenedGrades.has(String(i.grade)));
+
+    if (!isEventSlot) {
+      const teacherGrades = raw
+        .filter(i => parseInt(i.grade) > 0 && i.status !== 'vacated' && i.status !== 'absent')
+        .map(i => String(i.grade));
+      if (teacherGrades.length > 0) {
+        isEventSlot = dayScheds.some(s =>
+          teacherGrades.includes(String(s.target_grade)) &&
+          parseInt(s.display_order) === rowOrder &&
+          s.event_title && s.event_title.trim() !== ''
+        );
+      }
+    }
+  }
+
+  // 행사 슬롯: supervision만 남기고 나머지 제거
+  if (isEventSlot) raw = raw.filter(i => i.subject_name.startsWith('supervision_'));
+
+  // fixed_ 결강 처리: vacated fixed_와 같은 이름의 normal은 숨김
+  const vacFixedSubs = new Set(
+    raw.filter(i => i.status === 'vacated' && i.subject_name.startsWith('fixed_')).map(i => i.subject_name)
+  );
+  const isFixedAbsent = sub => sub.startsWith('fixed_') && vacFixedSubs.has(sub);
+
+  const hasVacated = raw.some(i => i.status === 'vacated' || i.status === 'absent') ||
+    raw.some(i => i.status === 'normal' && isFixedAbsent(i.subject_name));
+
+  // changed_user_id = me 인 reinforcement 인스턴스 = 내 결강 슬롯을 타인이 보강 중
+  // → hasReinf 감지에만 사용하고 display에서는 제외
+  const hasReinf = raw.some(i =>
+    i.status === 'reinforcement' && i.teacher_id !== teacherId
+  );
+
+  const display = raw.filter(i => {
+    if (i.status === 'vacated' || i.status === 'absent') return false;
+    if (i.status === 'reinforcement' && i.teacher_id !== teacherId) return false;
+    if (i.status === 'normal' && hiddenIds.has(i.internal_id)) return false;
+    if (i.status === 'normal' && isFixedAbsent(i.subject_name)) return false;
+    return true;
+  });
+
+  // 결강 (표시할 내용 없음): 보강 배정 완료면 붉은 점선, 미배정이면 노란 점선
+  if (hasVacated && display.length === 0) {
+    return `<td class="tt-mc ${hasReinf ? 'tt-c-vacated-reinf' : 'tt-c-vacated'}"></td>`;
+  }
+
+  // 빈 슬롯
+  if (display.length === 0) {
+    if (isAllGradeEvent)
+      return `<td class="tt-mc tt-c-event"><div class="tt-bb"><div class="tt-bt">${allGradeShort}</div></div></td>`;
+    return `<td class="tt-c-empty"></td>`;
+  }
+
+  // 표시 우선순위: supervision > 기타
+  const supItems = display.filter(i => i.subject_name.startsWith('supervision_'));
+  const main = supItems.length > 0 ? supItems[0] : display[0];
+
+  const isSup   = main.subject_name.startsWith('supervision_');
+  const isReinf = main.status === 'reinforcement';
+  const isChg   = main.status === 'changed';
+
+  let cellCls = 'tt-mc ';
+  if (isSup)        cellCls += 'tt-c-sup';
+  else if (isReinf) cellCls += 'tt-c-reinf';
+  else if (isChg)   cellCls += 'tt-c-changed';
+  else              cellCls += 'tt-c-normal';
+
+  let badge = '';
+  if (isSup)        badge = `<span class="tt-bdg tt-bdg-im">임</span>`;
+  else if (isReinf) badge = `<span class="tt-bdg tt-bdg-reinf">보</span>`;
+  else if (isChg)   badge = `<span class="tt-bdg tt-bdg-chg">변</span>`;
+
+  const rawSub  = main.subject_name.replace(/^supervision_/, '').replace(/^fixed_/, '');
+  const dispSub = rawSub.length > 5 ? rawSub.slice(0, 4) + '..' : rawSub;
+
+  const isFixed = main.subject_name.startsWith('fixed_');
+  const subText = isFixed ? '' : (main.grade > 0 ? `${main.grade}-${main.class_num}` : '');
+
+  return `<td class="${cellCls}"><div class="tt-bb">
+    <div class="tt-bt">${dispSub}${badge}</div>
+    ${subText ? `<div class="tt-bs">${subText}</div>` : ''}
+  </div></td>`;
 }
 
 // ════════════════ 5. 조종례 ════════════════
@@ -617,7 +1215,7 @@ async function loadMorning() {
 
   const grade = state.morningGrade;
   const { data } = await sb.from('announcements')
-    .select('*').eq('date', fmt(d))
+    .select('*').eq('school_id', me.user_metadata.school_id).eq('date', fmt(d))
     .in('target_grade', [grade, '전학년'])
     .order('id');
 
