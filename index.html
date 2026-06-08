@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="이음">
+  <meta name="theme-color" content="#1a73e8">
   <title>이음 모바일</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="favicon.png">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -338,6 +342,12 @@ const p2  = n => String(n).padStart(2, '0');
 const KO_DAY = ['일','월','화','수','목','금','토'];
 const dateLabel = d => `${d.getFullYear()}.${p2(d.getMonth()+1)}.${p2(d.getDate())} (${KO_DAY[d.getDay()]})`;
 const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+const skipToWeekday = (d, dir) => {
+  const day = d.getDay();
+  if (day === 6) return addDays(d, dir > 0 ? 2 : -1); // 토 → 월(앞) or 금(뒤)
+  if (day === 0) return addDays(d, dir > 0 ? 1 : -2); // 일 → 월(앞) or 금(뒤)
+  return d;
+};
 const getMonday = (d, offset=0) => {
   const r = new Date(d);
   const day = r.getDay();
@@ -422,6 +432,9 @@ function showApp(user) {
     t.classList.toggle('active', t.dataset.grade === savedGrade);
   });
 
+  ['calendar', 'periods', 'morning'].forEach(tab => {
+    state[tab] = skipToWeekday(state[tab], state[tab].getDay() === 6 ? -1 : 1);
+  });
   loadTab('calendar');
 }
 
@@ -446,13 +459,19 @@ function loadTab(tab) {
 
 // ── 날짜 이동 ──
 function moveDay(tab, delta) {
-  state[tab] = addDays(state[tab], delta);
+  const d = addDays(state[tab], delta);
+  const weekdayTabs = ['calendar', 'periods', 'morning'];
+  state[tab] = weekdayTabs.includes(tab) ? skipToWeekday(d, delta) : d;
   loadTab(tab);
 }
 function goToday(tab) {
   if (tab === 'timetable') { state.timetableWeek = 0; loadTimetable(); return; }
   if (tab === 'academic')  { state.academic = new Date(); loadAcademic(); return; }
   state[tab] = new Date();
+  if (['calendar', 'periods', 'morning'].includes(tab)) {
+    const day = state[tab].getDay();
+    state[tab] = skipToWeekday(state[tab], day === 6 ? -1 : 1);
+  }
   loadTab(tab);
 }
 function moveMonth(delta) {
@@ -581,9 +600,18 @@ async function loadCalendar() {
         fixedSeen.add(key);
       }
       const cnt = isFixed ? (fixedCount[`${t.period_num}_${t.subject_name}`] || 1) : 0;
+      // display_order 계산: 일과 재배치 시 실제 교시번호(period_num)가 아닌 표시 순번으로 레이블 표기
+      const _dispSched = schedules.find(s =>
+        parseInt(s.period_num) === parseInt(t.period_num) &&
+        parseInt(s.display_order) > 0 &&
+        (!s.event_title || s.event_title.trim() === '') &&
+        (s.target_grade === 'all' || String(s.target_grade) === String(t.grade || ''))
+      );
+      const displayOrderNum = _dispSched ? parseInt(_dispSched.display_order) : parseInt(t.period_num);
       events.push({
         type: 'class', status: t.status, isSup, isFixed,
         title: t.subject_name.replace(/^(supervision_|fixed_)/, ''), period_num: t.period_num,
+        display_order: displayOrderNum,
         grade: t.grade, class_num: t.class_num, fixedCount: cnt,
         start: times.start.slice(0,5), end: times.end.slice(0,5),
         startMins: sH*60+sM, endMins: eH*60+eM
@@ -707,7 +735,7 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay }) 
     let sub = '';
     if (ev.type === 'class') {
       const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
-      titleStr = (ev.period_num ? `${ev.period_num}교시 ` : '') + ev.title + gradeStr;
+      titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + ev.title + gradeStr;
       if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
       else if (ev.isSup)                       sub = '<span class="tg-blk-tag" style="color:#6a1b9a;">임장</span>';
@@ -1241,6 +1269,39 @@ async function loadMorning() {
 function emptyHtml(icon, msg) {
   return `<div class="empty-state"><span class="material-symbols-outlined">${icon}</span><p>${msg}</p></div>`;
 }
+
+// ── 스와이프 네비게이션 ──
+(function initSwipe() {
+  const panels = document.querySelector('.tab-panels');
+  let startX = 0, startY = 0, onHScroll = false;
+  const THRESHOLD = 50;
+
+  panels.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    onHScroll = !!e.target.closest('.tt-scroll');
+  }, { passive: true });
+
+  panels.addEventListener('touchend', e => {
+    if (onHScroll) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    const dir = dx < 0 ? 1 : -1; // 왼쪽 스와이프 → 다음, 오른쪽 → 이전
+    if (currentTab === 'calendar' || currentTab === 'periods' || currentTab === 'morning') {
+      moveDay(currentTab, dir);
+    } else if (currentTab === 'academic') {
+      moveMonth(dir);
+    } else if (currentTab === 'timetable') {
+      moveWeek(dir);
+    }
+  }, { passive: true });
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 </script>
 </body>
 </html>

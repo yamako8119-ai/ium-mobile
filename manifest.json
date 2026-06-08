@@ -1,0 +1,16 @@
+{
+  "id": "/mobile",
+  "name": "이음",
+  "short_name": "이음",
+  "description": "이음 그룹웨어 — 교내 메신저·캘린더·시간표",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a73e8",
+  "theme_color": "#1a73e8",
+  "icons": [
+    { "src": "favicon.png", "type": "image/png", "sizes": "any", "purpose": "any" },
+    { "src": "favicon.png", "type": "image/png", "sizes": "any", "purpose": "maskable" }
+  ]
+}
