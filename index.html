@@ -659,9 +659,9 @@ async function loadCalendar() {
         const gradeStr = String(t.grade);
         const gScheds = gradeSchedsMap[gradeStr] || gradeSchedsMap['all'] || [];
         if (gScheds.length > 0) {
-          const maxDo = Math.max(...gScheds.map(s => parseInt(s.display_order) || 0));
-          const isMapped = gScheds.some(s => parseInt(s.period_num) === parseInt(t.period_num));
-          if (parseInt(t.period_num) > maxDo && !isMapped) return;
+          // 오늘 일과에 없는 교시(단축 포함, 재배열로 제거된 교시)는 표시 안 함
+          const isMapped = gScheds.some(s => parseInt(s.period_num) === parseInt(t.period_num) && parseInt(s.period_num) > 0);
+          if (!isMapped) return;
         }
       }
       // 학년별 시간 우선, 없으면 'all' → 전체 폴백
