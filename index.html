@@ -531,7 +531,7 @@ function filterSchools(query) {
 
   const names = [...new Set(filtered.map(s => s.name))];
   dropdown.innerHTML = names.map(name =>
-    `<div class="school-option" onclick="selectSchoolName(${JSON.stringify(name)})">${name}</div>`
+    `<div class="school-option" onclick='selectSchoolName(${JSON.stringify(name)})'>${name}</div>`
   ).join('');
   dropdown.style.display = 'block';
 }
