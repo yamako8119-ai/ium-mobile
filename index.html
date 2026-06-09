@@ -28,8 +28,15 @@
     .login-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
     .form-group { margin-bottom: 14px; }
     .form-group label { font-size: 12px; font-weight: 600; color: #666; display: block; margin-bottom: 6px; }
-    .form-group select, .form-group input { width: 100%; padding: 13px 14px; border: 1.5px solid #e8e8e8; border-radius: 12px; font-size: 15px; outline: none; background: #fafafa; appearance: none; -webkit-appearance: none; transition: border-color .15s; }
+    .form-group select, .form-group input { width: 100%; padding: 13px 14px; border: 1.5px solid #e8e8e8; border-radius: 12px; font-size: 15px; outline: none; background: #fafafa; appearance: none; -webkit-appearance: none; transition: border-color .15s; box-sizing: border-box; }
     .form-group select:focus, .form-group input:focus { border-color: #1a73e8; background: white; }
+    .school-search-wrap { position: relative; }
+    .school-search-wrap input.has-value { border-color: #1a73e8; background: white; }
+    #school-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid #1a73e8; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    .school-option { padding: 12px 14px; font-size: 15px; cursor: pointer; transition: background .1s; }
+    .school-option:hover, .school-option:active { background: #f0f6ff; }
+    .school-option.no-result { color: #999; cursor: default; }
+    .school-option.no-result:hover { background: none; }
     .login-btn { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 6px; transition: background .15s; }
     .login-btn:active { background: #1557b0; }
     .login-btn:disabled { background: #a8c4e8; }
@@ -255,8 +262,18 @@
   <div class="login-card">
     <h2>로그인</h2>
     <div class="form-group">
-      <label>학교 선택</label>
-      <select id="school-select"><option value="">학교를 선택하세요</option></select>
+      <label>학교 검색</label>
+      <div class="school-search-wrap">
+        <input id="school-input" type="text" placeholder="학교명을 입력하세요" autocomplete="off"
+          oninput="filterSchools(this.value)" onfocus="filterSchools(this.value)">
+        <div id="school-dropdown" style="display:none"></div>
+      </div>
+    </div>
+    <div class="form-group" id="region-group" style="display:none">
+      <label>지역 선택</label>
+      <select id="region-select" onchange="selectRegion(this.value)">
+        <option value="">지역을 선택하세요</option>
+      </select>
     </div>
     <div class="form-group">
       <label>이름</label>
@@ -436,22 +453,109 @@ const getMonday = (d, offset=0) => {
 };
 const isToday = d => fmt(d) === fmt(new Date());
 
+// ── 자동 로그인 저장소 ──
+const CRED_KEY = 'eeum_cred';
+
+function saveCredentials(email, password, school, displayName) {
+  localStorage.setItem(CRED_KEY, JSON.stringify({
+    email, password,
+    schoolId: school.id, schoolCode: school.code,
+    schoolName: school.name, schoolRegion: school.region || '',
+    displayName
+  }));
+}
+
+function loadCredentials() {
+  try { return JSON.parse(localStorage.getItem(CRED_KEY)); } catch { return null; }
+}
+
+function clearCredentials() {
+  localStorage.removeItem(CRED_KEY);
+}
+
+function prefillLoginForm(saved) {
+  const school = allSchools.find(s => s.id === saved.schoolId);
+  if (school) {
+    selectedSchool = school;
+    document.getElementById('school-input').value = saved.schoolName;
+    document.getElementById('school-input').classList.add('has-value');
+    if (saved.schoolRegion) {
+      const sel = document.getElementById('region-select');
+      sel.innerHTML = `<option value="${school.id}">${saved.schoolRegion}</option>`;
+      document.getElementById('region-group').style.display = 'block';
+    }
+  }
+  document.getElementById('login-name').value = saved.displayName || '';
+  document.getElementById('login-pw').value = saved.password || '';
+}
+
 // ── 초기화 ──
 window.onload = async () => {
   await loadSchools();
   const { data: { session } } = await sb.auth.getSession();
-  if (session) showApp(session.user);
+  if (session) { showApp(session.user); return; }
+
+  const saved = loadCredentials();
+  if (saved) {
+    const { data, error } = await sb.auth.signInWithPassword({ email: saved.email, password: saved.password });
+    if (!error && data.user) { showApp(data.user); return; }
+    prefillLoginForm(saved);
+  }
 };
+
+document.addEventListener('click', e => {
+  const wrap = document.querySelector('.school-search-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('school-dropdown').style.display = 'none';
+  }
+});
+
+let allSchools = [];
+let selectedSchool = null;
 
 async function loadSchools() {
   const { data } = await sb.from('schools').select('id, name, code, region').order('name');
-  const sel = document.getElementById('school-select');
-  (data || []).forEach(s => {
-    const o = document.createElement('option');
-    o.value = JSON.stringify({ id: s.id, code: s.code, name: s.name });
-    o.textContent = s.region ? `${s.name} (${s.region})` : s.name;
-    sel.appendChild(o);
-  });
+  allSchools = data || [];
+}
+
+function filterSchools(query) {
+  const dropdown = document.getElementById('school-dropdown');
+  if (!query.trim()) { dropdown.style.display = 'none'; return; }
+
+  const filtered = allSchools.filter(s => s.name.includes(query.trim()));
+  if (!filtered.length) {
+    dropdown.innerHTML = '<div class="school-option no-result">검색 결과가 없습니다</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  const names = [...new Set(filtered.map(s => s.name))];
+  dropdown.innerHTML = names.map(name =>
+    `<div class="school-option" onclick="selectSchoolName(${JSON.stringify(name)})">${name}</div>`
+  ).join('');
+  dropdown.style.display = 'block';
+}
+
+function selectSchoolName(name) {
+  document.getElementById('school-input').value = name;
+  document.getElementById('school-input').classList.add('has-value');
+  document.getElementById('school-dropdown').style.display = 'none';
+
+  const matches = allSchools.filter(s => s.name === name);
+  if (matches.length === 1) {
+    selectedSchool = matches[0];
+    document.getElementById('region-group').style.display = 'none';
+  } else {
+    selectedSchool = null;
+    const sel = document.getElementById('region-select');
+    sel.innerHTML = '<option value="">지역을 선택하세요</option>' +
+      matches.map(s => `<option value="${s.id}">${s.region || '지역 미설정'}</option>`).join('');
+    document.getElementById('region-group').style.display = 'block';
+  }
+}
+
+function selectRegion(schoolId) {
+  selectedSchool = allSchools.find(s => s.id === schoolId) || null;
 }
 
 // ── 로그인 ──
@@ -459,14 +563,13 @@ async function login() {
   const btn = document.querySelector('.login-btn');
   const err = document.getElementById('login-error');
   err.textContent = '';
-  const schoolRaw = document.getElementById('school-select').value;
-  const name      = document.getElementById('login-name').value.trim();
-  const pw        = document.getElementById('login-pw').value;
-  if (!schoolRaw) { err.textContent = '학교를 선택해주세요.'; return; }
-  if (!name)      { err.textContent = '이름을 입력해주세요.'; return; }
-  if (!pw)        { err.textContent = '비밀번호를 입력해주세요.'; return; }
+  const name = document.getElementById('login-name').value.trim();
+  const pw   = document.getElementById('login-pw').value;
+  if (!selectedSchool) { err.textContent = '학교를 선택해주세요.'; return; }
+  if (!name)           { err.textContent = '이름을 입력해주세요.'; return; }
+  if (!pw)             { err.textContent = '비밀번호를 입력해주세요.'; return; }
 
-  const school = JSON.parse(schoolRaw);
+  const school = selectedSchool;
   btn.disabled = true; btn.textContent = '로그인 중...';
 
   const { data: lookup, error: le } = await sb
@@ -485,12 +588,20 @@ async function login() {
     btn.disabled = false; btn.textContent = '로그인'; return;
   }
 
+  saveCredentials(email, pw, school, name);
   showApp(data.user);
 }
 
 async function logout() {
   await sb.auth.signOut();
+  clearCredentials();
   me = null;
+  selectedSchool = null;
+  document.getElementById('school-input').value = '';
+  document.getElementById('school-input').classList.remove('has-value');
+  document.getElementById('region-group').style.display = 'none';
+  document.getElementById('login-name').value = '';
+  document.getElementById('login-pw').value = '';
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
