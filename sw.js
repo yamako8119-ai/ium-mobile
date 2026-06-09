@@ -38,6 +38,9 @@ self.addEventListener('fetch', e => {
   }
 
   // 로컬 파일 → 네트워크 우선 (항상 최신), 실패 시 캐시 폴백
+  // POST 등 non-GET 요청은 캐시 불가 → 그냥 통과
+  if (e.request.method !== 'GET') return;
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
