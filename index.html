@@ -444,12 +444,12 @@ window.onload = async () => {
 };
 
 async function loadSchools() {
-  const { data } = await sb.from('schools').select('id, name, code').order('name');
+  const { data } = await sb.from('schools').select('id, name, code, region').order('name');
   const sel = document.getElementById('school-select');
   (data || []).forEach(s => {
     const o = document.createElement('option');
     o.value = JSON.stringify({ id: s.id, code: s.code, name: s.name });
-    o.textContent = s.name;
+    o.textContent = s.region ? `${s.name} (${s.region})` : s.name;
     sel.appendChild(o);
   });
 }
