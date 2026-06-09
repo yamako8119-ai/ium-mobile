@@ -10,6 +10,7 @@
   <title>이음 모바일</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="icon" href="favicon.png">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -101,6 +102,53 @@
     .tg-blk-tag   { font-size: 11px; font-weight: 700; display: inline; margin-left: 3px; }
     .tg-now-line  { position: absolute; left: 0; right: 0; height: 2px; background: #ef4444; z-index: 5; pointer-events: none; }
     .tg-now-line::before { content: ''; position: absolute; left: -3px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; }
+
+    /* ── 캘린더 민트 메모 점 ── */
+    .tg-mint-wrap { position: absolute; right: 4px; width: 16px; height: 16px; z-index: 6; cursor: pointer; }
+    .tg-mint-pin  { width: 16px; height: 16px; border-radius: 50%; background: #14b8a6; border: 2px solid white; box-shadow: 0 2px 8px rgba(20,184,166,.5); transition: transform .15s; }
+    .tg-mint-wrap.active .tg-mint-pin { background: #0f766e; transform: scale(1.2); }
+    .tg-mint-popover { display: none; position: absolute; right: 20px; top: -4px; max-width: 180px; min-width: 100px; background: rgba(20,184,166,.95); color: white; padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 500; line-height: 1.45; white-space: pre-wrap; box-shadow: 0 4px 12px rgba(0,0,0,.2); z-index: 20; word-break: break-word; pointer-events: none; }
+    .tg-mint-popover::after { content: ''; position: absolute; right: -5px; top: 8px; border: 5px solid transparent; border-left-color: rgba(20,184,166,.95); border-right-width: 0; }
+    .tg-mint-wrap.active .tg-mint-popover { display: block; }
+
+    /* ── 캘린더 체크리스트 ── */
+    .tg-checklist { margin: 0 12px 16px; }
+    .tg-cl-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; background: white; border-radius: 10px 10px 0 0; box-shadow: 0 1px 4px rgba(0,0,0,.06); cursor: pointer; user-select: none; -webkit-user-select: none; }
+    .tg-cl-header.collapsed { border-radius: 10px; }
+    .tg-cl-title  { font-size: 13px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 6px; }
+    .tg-cl-badge  { background: #e6faf8; color: #0d9488; border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+    .tg-cl-chevron { font-size: 18px; color: #94a3b8; transition: transform .2s; }
+    .tg-cl-header.collapsed .tg-cl-chevron { transform: rotate(-90deg); }
+    .tg-cl-body   { background: white; border-radius: 0 0 10px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    .tg-cl-item   { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-top: 1px solid #f5f5f5; }
+    .tg-cl-item:first-child { border-top: none; }
+    .tg-cl-check  { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #cbd5e1; appearance: none; -webkit-appearance: none; flex-shrink: 0; margin-top: 1px; background: white; cursor: pointer; transition: background .15s, border-color .15s; background-repeat: no-repeat; background-position: center; background-size: 10px; }
+    .tg-cl-check:checked { background-color: #14b8a6; border-color: #14b8a6; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5L4.5 8.5L11 1.5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+    .tg-cl-text   { flex: 1; font-size: 13px; color: #334155; line-height: 1.5; }
+    .tg-cl-text.done { text-decoration: line-through; color: #94a3b8; }
+    .tg-cl-empty  { padding: 14px; text-align: center; color: #94a3b8; font-size: 13px; }
+
+    /* ── 캘린더 체크리스트 좌측 사이드바 ── */
+    #tab-calendar.active { display: flex; flex-direction: column; overflow: hidden; }
+    .cal-body  { flex: 1; position: relative; overflow: hidden; }
+    .cal-scroll { height: 100%; overflow-y: auto; }
+
+    #cal-cl-trigger { position: absolute; left: 0; top: 10px; z-index: 25; background: white; border: 1.5px solid #e8e8e8; border-left: none; border-radius: 0 10px 10px 0; padding: 10px 5px 10px 3px; box-shadow: 3px 0 10px rgba(0,0,0,.08); cursor: pointer; display: flex; align-items: center; color: #94a3b8; transition: color .15s, background .15s; }
+    #cal-cl-trigger:active { background: #f0fdfa; }
+    #cal-cl-trigger .material-symbols-outlined { font-size: 16px; }
+    #cal-cl-trigger.has-todos { color: #14b8a6; border-color: #99f6e4; }
+
+    #cal-cl-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.3); z-index: 29; display: none; }
+    #cal-cl-backdrop.open { display: block; }
+
+    #cal-cl-overlay { position: absolute; top: 0; left: 0; bottom: 0; width: min(264px, 85vw); background: white; z-index: 30; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; overflow: hidden; box-shadow: 4px 0 20px rgba(0,0,0,.15); }
+    #cal-cl-overlay.open { transform: translateX(0); }
+    .cal-cl-ov-header { padding: 13px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+    .cal-cl-ov-title { font-size: 15px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 7px; }
+    .cal-cl-ov-close { background: none; border: none; cursor: pointer; color: #94a3b8; display: flex; align-items: center; padding: 6px; border-radius: 8px; }
+    .cal-cl-ov-close:active { background: #f0f0f0; }
+    .cal-cl-list { flex: 1; overflow-y: auto; padding: 8px 14px 24px; }
+    .cal-cl-list .tg-cl-item:first-child { border-top: none; }
 
     /* ── 학사일정 달력 ── */
     .month-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; }
@@ -240,7 +288,35 @@
         <button class="today-btn" onclick="goToday('calendar')">오늘</button>
         <button class="nav-btn" onclick="moveDay('calendar', 1)"><span class="material-symbols-outlined">chevron_right</span></button>
       </div>
-      <div id="calendar-content"></div>
+
+      <div class="cal-body">
+        <!-- 좌측 엣지 트리거 탭 -->
+        <button id="cal-cl-trigger" onclick="_calClToggle()">
+          <span class="material-symbols-outlined">checklist</span>
+        </button>
+
+        <!-- 반투명 백드롭 -->
+        <div id="cal-cl-backdrop" onclick="_calClToggle()"></div>
+
+        <!-- 체크리스트 사이드바 -->
+        <div id="cal-cl-overlay">
+          <div class="cal-cl-ov-header">
+            <div class="cal-cl-ov-title">
+              <span class="material-symbols-outlined" style="font-size:18px;color:#14b8a6;">checklist</span>
+              나의 체크리스트
+            </div>
+            <button class="cal-cl-ov-close" onclick="_calClToggle()">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+          </div>
+          <div id="cal-cl-list" class="cal-cl-list"></div>
+        </div>
+
+        <!-- 스크롤 영역 -->
+        <div class="cal-scroll">
+          <div id="calendar-content"></div>
+        </div>
+      </div>
     </div>
 
     <!-- 2. 학사일정 -->
@@ -504,7 +580,7 @@ async function loadCalendar() {
   const schoolId = me.user_metadata.school_id;
   const teacherId = me.user_metadata.teacher_id;
 
-  const [acRes, calRes, ttRes, schRes] = await Promise.all([
+  const [acRes, calRes, ttRes, schRes, taskRes] = await Promise.all([
     sb.from('academic_calendar').select('*')
       .eq('school_id', schoolId).eq('event_date', dateStr).order('order_idx'),
     sb.from('my_calendar').select('*')
@@ -516,13 +592,19 @@ async function loadCalendar() {
       .eq('target_date', dateStr).order('period_num'),
     sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade')
       .eq('school_id', schoolId).eq('target_date', dateStr).gt('period_num', 0)
-      .order('display_order')
+      .order('display_order'),
+    sb.from('personal_tasks').select('*')
+      .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
+      .order('sort_order', { nullsFirst: true }),
   ]);
 
-  const academics   = acRes.data  || [];
-  const personalEvs = calRes.data || [];
-  const timetable   = ttRes.data  || [];
-  const schedules   = schRes.data || [];
+  const academics   = acRes.data   || [];
+  const personalEvs = calRes.data  || [];
+  const timetable   = ttRes.data   || [];
+  const schedules   = schRes.data  || [];
+  const tasks       = taskRes.data || [];
+  const memos = tasks.filter(t => t.task_type === 'memo' && t.date === dateStr);
+  const todos = tasks.filter(t => t.task_type === 'todo');
 
   // 학년별 교시 시간 맵: grade → { period_num → {start, end} }
   // 학년마다 일과 시간이 다를 수 있으므로(고사·행사 등) 인스턴스 학년 기준으로 조회
@@ -634,15 +716,19 @@ async function loadCalendar() {
     });
   });
 
-  renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay: fmt(new Date()) === dateStr });
+  // 체크리스트 트리거 배지
+  const _clBtn = document.getElementById('cal-cl-trigger');
+  if (_clBtn) _clBtn.classList.toggle('has-todos', todos.length > 0);
+
+  renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay: fmt(new Date()) === dateStr, memos });
 }
 
-function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay }) {
+function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, memos = [] }) {
   const PX = 1.2, SH = 8, EH = 18;
   const calcY = mins => Math.max(0, (mins - SH*60) * PX);
   const gridH  = (EH - SH) * 60 * PX;
 
-  if (academics.length === 0 && events.length === 0 && allDayEvs.length === 0) {
+  if (academics.length === 0 && events.length === 0 && allDayEvs.length === 0 && memos.length === 0) {
     el.innerHTML = emptyHtml('calendar_month', '오늘 일정이 없습니다.');
     return;
   }
@@ -744,6 +830,26 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay }) 
       `<div class="tg-blk-title" style="font-size:${bH<24?'12px':'13px'};">${titleStr}${sub}</div>` +
       (bH >= 28 ? `<div class="tg-blk-sub">${ev.start}–${ev.end}</div>` : '');
     col.appendChild(block);
+  });
+
+  // 민트 메모 점
+  memos.forEach(memo => {
+    const [h, m] = (memo.time || '00:00').split(':').map(Number);
+    const clampedMins = Math.max(SH*60, Math.min(h*60+m, EH*60-1));
+    const wrap = document.createElement('div');
+    wrap.className = 'tg-mint-wrap';
+    wrap.style.top = (calcY(clampedMins) - 8) + 'px';
+    const timeStr = (!memo.time || memo.time === '00:00') ? '종일' : memo.time;
+    const safe = (memo.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    wrap.innerHTML = `<div class="tg-mint-pin"></div>
+      <div class="tg-mint-popover"><span style="opacity:.75;font-size:11px;">${timeStr}</span><br>${safe}</div>`;
+    wrap.addEventListener('click', e => {
+      e.stopPropagation();
+      const wasActive = wrap.classList.contains('active');
+      col.querySelectorAll('.tg-mint-wrap.active').forEach(w => w.classList.remove('active'));
+      if (!wasActive) wrap.classList.add('active');
+    });
+    col.appendChild(wrap);
   });
 
   if (isCurrentDay) {
@@ -1264,6 +1370,77 @@ async function loadMorning() {
         <div class="morning-author">${a.author_name || ''}</div>
       </div>`).join('') + `</div>`;
 }
+
+// ── 캘린더 체크리스트 오버레이 ──
+let _calClOpen = false;
+
+function _calClToggle() {
+  _calClOpen = !_calClOpen;
+  document.getElementById('cal-cl-overlay').classList.toggle('open', _calClOpen);
+  document.getElementById('cal-cl-backdrop').classList.toggle('open', _calClOpen);
+  if (_calClOpen) _calClLoad();
+}
+
+async function _calClLoad() {
+  const list = document.getElementById('cal-cl-list');
+  if (!list || !me) return;
+  list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:24px;">로딩 중...</div>';
+  const { data } = await sb.from('personal_tasks').select('*')
+    .eq('school_id', me.user_metadata.school_id)
+    .eq('teacher_id', String(me.user_metadata.teacher_id))
+    .eq('task_type', 'todo')
+    .order('sort_order', { nullsFirst: true });
+  const todos = data || [];
+  if (todos.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:24px;">할 일이 없습니다</div>';
+    return;
+  }
+  list.innerHTML = todos.map(t => `
+    <div class="tg-cl-item">
+      <span class="material-symbols-outlined" style="font-size:17px;flex-shrink:0;color:${t.is_completed ? '#14b8a6' : '#cbd5e1'};">${t.is_completed ? 'check_circle' : 'radio_button_unchecked'}</span>
+      <span class="tg-cl-text${t.is_completed ? ' done' : ''}">${
+        (t.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      }</span>
+    </div>`).join('');
+}
+
+// ── 캘린더 체크리스트 헬퍼 (미사용 — 오버레이로 대체)
+function _renderMobileChecklist(container, todos) {
+  const isOpen = localStorage.getItem('mobileTdpClOpen') !== 'false';
+  const clDiv = document.createElement('div');
+  clDiv.className = 'tg-checklist';
+  clDiv.innerHTML = `
+    <div class="tg-cl-header${isOpen ? '' : ' collapsed'}" onclick="_mobileToggleCl(this)">
+      <div class="tg-cl-title">
+        <span class="material-symbols-outlined" style="font-size:16px;color:#14b8a6;">checklist</span>
+        나의 할 일
+        <span class="tg-cl-badge">${todos.length}</span>
+      </div>
+      <span class="material-symbols-outlined tg-cl-chevron">expand_more</span>
+    </div>
+    <div class="tg-cl-body"${isOpen ? '' : ' style="display:none;"'}>
+      ${todos.map(t => `
+        <div class="tg-cl-item">
+          <input type="checkbox" class="tg-cl-check" ${t.is_completed ? 'checked' : ''}
+            onchange="_mobileToggleTask(${t.internal_id}, this)">
+          <span class="tg-cl-text${t.is_completed ? ' done' : ''}">${
+            (t.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          }</span>
+        </div>`).join('')}
+    </div>`;
+  container.appendChild(clDiv);
+}
+
+function _mobileToggleCl(header) {
+  const isCollapsed = header.classList.toggle('collapsed');
+  header.nextElementSibling.style.display = isCollapsed ? 'none' : '';
+  localStorage.setItem('mobileTdpClOpen', isCollapsed ? 'false' : 'true');
+}
+
+// 민트 팝오버 — 다른 곳 탭하면 닫기
+document.addEventListener('click', () => {
+  document.querySelectorAll('.tg-mint-wrap.active').forEach(w => w.classList.remove('active'));
+});
 
 // ── 공통 empty state ──
 function emptyHtml(icon, msg) {
