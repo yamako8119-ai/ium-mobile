@@ -89,6 +89,7 @@
     .tg-grid-line.half { background: #f8f8f8; }
     .tg-block { position: absolute; border-radius: 5px; padding: 3px 6px; overflow: hidden; box-sizing: border-box; }
     .tg-class   { background: #f8fafc; border-left: 3px solid #94a3b8; color: #475569; }
+    .tg-conflict { background: #fff5f5 !important; box-shadow: inset 0 0 0 2px #ff3b30 !important; border-left: 3px solid #ff3b30 !important; color: #b91c1c !important; }
     .tg-vacated { background: #fce8e6; border-left: 3px solid #c62828; }
     .tg-changed { background: #fff8f0; border-left: 3px solid #e65100; }
     .tg-reinf   { background: #fff1f2; border-left: 3px solid #f43f5e; color: #9f1239; }
@@ -796,6 +797,17 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
   visible.forEach((ev, i) => { const g = uf(i); gMax[g] = Math.max(gMax[g]||0, ev._c); });
   visible.forEach((ev, i) => { ev._nc = (gMax[uf(i)]||0)+1; });
 
+  // 같은 그룹 내 class 이벤트가 2개 이상이면 충돌 → tg-conflict 표시
+  const groupClassCount = {};
+  visible.forEach((ev, i) => {
+    if (ev.type !== 'class') return;
+    const g = uf(i);
+    groupClassCount[g] = (groupClassCount[g] || 0) + 1;
+  });
+  visible.forEach((ev, i) => {
+    ev._isConflict = ev.type === 'class' && (groupClassCount[uf(i)] || 0) > 1;
+  });
+
   visible.forEach(ev => {
     const topY = calcY(Math.max(ev.startMins, SH*60));
     const botY = calcY(Math.min(ev.endMins, EH*60));
@@ -810,6 +822,7 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
         ev.status === 'changed'       ? 'tg-changed' :
         ev.isSup                      ? 'tg-sup'     : 'tg-class'
       );
+      if (ev._isConflict) block.classList.add('tg-conflict');
     } else {
       block.classList.add('tg-' + (ev.type || 'event'));
     }
