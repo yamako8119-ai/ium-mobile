@@ -574,7 +574,6 @@ async function loadCalendar() {
   const d = state.calendar;
   document.getElementById('calendar-date-label').textContent = dateLabel(d);
   const el = document.getElementById('calendar-content');
-  el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const dateStr = fmt(d);
   const schoolId = me.user_metadata.school_id;
@@ -888,7 +887,6 @@ async function loadAcademic() {
   document.getElementById('academic-month-label').textContent = `${year}년 ${month+1}월`;
 
   const el = document.getElementById('academic-content');
-  el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const start = `${year}-${p2(month+1)}-01`;
   const lastDay = new Date(year, month+1, 0).getDate();
@@ -979,7 +977,6 @@ async function loadPeriods() {
   const d = state.periods;
   document.getElementById('periods-date-label').textContent = dateLabel(d);
   const el = document.getElementById('periods-content');
-  el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const { data } = await sb.from('daily_schedules')
     .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order');
@@ -1126,7 +1123,6 @@ async function loadTimetable() {
     `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
 
   const el = document.getElementById('timetable-content');
-  el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const [ttRes, schRes] = await Promise.all([
     // 내 수업 + 내 결강 슬롯을 보강하는 타인의 인스턴스(changed_user_id = me) 함께 조회
@@ -1345,7 +1341,6 @@ async function loadMorning() {
   const d = state.morning;
   document.getElementById('morning-date-label').textContent = dateLabel(d);
   const el = document.getElementById('morning-content');
-  el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   const grade = state.morningGrade;
   const { data } = await sb.from('announcements')
@@ -1384,7 +1379,6 @@ function _calClToggle() {
 async function _calClLoad() {
   const list = document.getElementById('cal-cl-list');
   if (!list || !me) return;
-  list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:24px;">로딩 중...</div>';
   const { data } = await sb.from('personal_tasks').select('*')
     .eq('school_id', me.user_metadata.school_id)
     .eq('teacher_id', String(me.user_metadata.teacher_id))
