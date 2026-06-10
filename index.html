@@ -40,6 +40,40 @@
     .login-btn:active { background: #1557b0; }
     .login-btn:disabled { background: #a8c4e8; }
     .login-error { color: #d32f2f; font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
+    .login-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .login-card-header h2 { font-size: 17px; font-weight: 700; margin: 0; }
+    .login-mode-toggle { display: flex; border: 1.5px solid #1a73e8; border-radius: 8px; overflow: hidden; }
+    .login-mode-toggle button { padding: 5px 13px; border: none; background: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #1a73e8; line-height: 1.4; }
+    .login-mode-toggle button.active { background: #1a73e8; color: white; }
+
+    /* ── 학생 화면 ── */
+    #student-screen { height: 100dvh; display: flex; flex-direction: column; }
+    .student-header { background: white; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+    .student-header .school-name { font-size: 16px; font-weight: 700; }
+    .student-header .mode-badge { font-size: 11px; color: #888; margin-top: 2px; }
+    .class-selector-bar { background: white; border-bottom: 1px solid #f0f0f0; padding: 10px 14px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .class-selector-bar select { flex: 1; padding: 8px 10px; border: 1.5px solid #e8e8e8; border-radius: 10px; font-size: 14px; font-weight: 600; background: #fafafa; appearance: none; -webkit-appearance: none; outline: none; font-family: inherit; }
+    .class-selector-bar select:focus { border-color: #1a73e8; }
+    .class-selector-bar .class-sep { color: #ccc; font-size: 18px; flex-shrink: 0; }
+    .student-tt-wrap { flex: 1; overflow-y: auto; }
+
+    /* ── 학생 시간표 셀 색상 ── */
+    .st-cell-normal    { background: #dbeafe; border: 1px solid #93c5fd !important; }
+    .st-cell-normal    .st-sub { color: #1e40af; font-weight: 700; font-size: 11px; }
+    .st-cell-changed   { background: #fef9c3; border: 1px solid #fde047 !important; }
+    .st-cell-changed   .st-sub { color: #854d0e; font-weight: 700; font-size: 11px; }
+    .st-cell-changed   .st-teacher-nm { color: #a16207; }
+    .st-cell-reinf     { background: #fee2e2; border: 1px solid #fca5a5 !important; }
+    .st-cell-reinf     .st-sub { color: #991b1b; font-weight: 700; font-size: 11px; }
+    .st-teacher-nm { display: block; font-size: 9px; font-weight: 500; margin-top: 2px; color: #515154; }
+    .st-cell-event-sep { background: #f3e8ff; border: 1px solid #d8b4fe !important; }
+    .st-cell-event-sep .st-sub { color: #7e22ce; font-weight: 700; font-size: 11px; }
+    .st-cell-event     { background: #dcfce7; border: 1px solid #86efac !important; }
+    .st-cell-event     .st-sub { color: #15803d; font-weight: 700; font-size: 11px; }
+    .st-cell-vacated   { background: #fffdf2; position: relative; }
+    .st-cell-vacated::after { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; border: 2px dashed #fde047; border-radius: 4px; }
+    .st-cell-vacated-reinf { background: #fff5f5; position: relative; }
+    .st-cell-vacated-reinf::after { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; border: 2px dashed #fca5a5; border-radius: 4px; }
 
     /* ── 앱 셸 ── */
     #app-screen { height: 100dvh; display: flex; flex-direction: column; }
@@ -188,14 +222,34 @@
 
     /* ── 주간 시간표 ── */
     .week-nav { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 10; }
+    #tt-view-fab { position: fixed; right: 16px; bottom: calc(56px + env(safe-area-inset-bottom) + 8px); z-index: 50; }
+    #tt-classroom-fab { position: fixed; left: 16px; bottom: calc(56px + env(safe-area-inset-bottom) + 8px); z-index: 50; }
+    .tt-classroom-label { display: flex; align-items: center; gap: 5px; padding: 5px 11px; background: white; border: 1.5px solid #1a73e8; border-radius: 6px; box-shadow: 0 2px 8px rgba(26,115,232,.25); font-size: 12px; font-weight: 600; color: #1a73e8; cursor: pointer; user-select: none; }
+    .tt-classroom-label input[type=checkbox] { accent-color: #1a73e8; width: 14px; height: 14px; cursor: pointer; }
+    .tt-holiday-cell { background: #fff0f0; }
+    .tt-view-toggle { display: flex; border: 1.5px solid #1a73e8; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(26,115,232,.25); background: white; }
+    .tt-view-toggle button { padding: 5px 13px; border: none; background: none; font-size: 12px; font-weight: 600; cursor: pointer; color: #1a73e8; }
+    .tt-view-toggle button.active { background: #1a73e8; color: white; }
     .week-nav .nav-btn { background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: #555; display: flex; align-items: center; }
     .week-nav .nav-btn .material-symbols-outlined { font-size: 22px; }
     .week-nav .week-label { font-size: 14px; font-weight: 700; }
     .tt-scroll { overflow-x: auto; margin: 12px 16px; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .tt-search-wrap { position: relative; margin: 0 16px 12px; }
+    .tt-search-input { width: 100%; box-sizing: border-box; padding: 9px 36px 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; background: white; }
+    .tt-search-input:focus { border-color: #1a73e8; }
+    .tt-search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #aaa; font-size: 18px; line-height: 1; display: none; }
+    .tt-search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 30; max-height: 220px; overflow-y: auto; display: none; }
+    .tt-search-item { padding: 10px 14px; font-size: 14px; cursor: pointer; color: #333; }
+    .tt-search-item:hover, .tt-search-item.focused { background: #f0f4ff; color: #1a73e8; }
+    .tt-search-item em { font-style: normal; font-weight: 700; color: #1a73e8; }
     .tt-table { min-width: 340px; border-collapse: collapse; width: 100%; background: white; table-layout: fixed; }
     .tt-table th { background: #f8f9fa; font-size: 11px; font-weight: 700; text-align: center; padding: 9px 4px; border-bottom: 2px solid #e8e8e8; border-right: 1px solid #f0f0f0; color: #555; }
     .tt-table th:first-child { width: 32px; color: #bbb; font-size: 10px; }
     .tt-table th.today-col { color: #1a73e8; background: #e8f0fe; }
+    /* 오늘 컬럼 굵은 테두리 (inset box-shadow: border-collapse + 다른 셀 서식 덮어쓰기 방지용 !important) */
+    .tt-today-first { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8, inset 0 2.5px 0 0 #1a73e8 !important; }
+    .tt-today-mid   { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8 !important; }
+    .tt-today-last  { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8, inset 0 -2.5px 0 0 #1a73e8 !important; }
     .tt-table td { border: 1px solid #e2e8f0; text-align: center; padding: 0; vertical-align: middle; height: 46px; font-size: 11px; }
     .tt-table td.period-col { color: #64748b; font-weight: 700; background: #f9fafb; font-size: 11px; width: 26px; padding: 0 4px; }
     .tt-mc  { position: relative; width: 100%; height: 100%; }
@@ -259,7 +313,13 @@
     <p>학교 정보를 손안에서 확인하세요</p>
   </div>
   <div class="login-card">
-    <h2>로그인</h2>
+    <div class="login-card-header">
+      <h2>로그인</h2>
+      <div class="login-mode-toggle">
+        <button data-mode="teacher" onclick="setLoginMode('teacher')">교사용</button>
+        <button data-mode="student" onclick="setLoginMode('student')">학생용</button>
+      </div>
+    </div>
     <div class="form-group">
       <label>학교 검색</label>
       <div class="school-search-wrap">
@@ -274,23 +334,100 @@
         <option value="">지역을 선택하세요</option>
       </select>
     </div>
-    <div class="form-group">
-      <label>이름</label>
-      <input id="login-name" type="text" placeholder="홍길동" autocomplete="name">
+    <div id="teacher-only-fields">
+      <div class="form-group">
+        <label>이름</label>
+        <input id="login-name" type="text" placeholder="홍길동" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label>비밀번호</label>
+        <input id="login-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password">
+      </div>
     </div>
-    <div class="form-group">
-      <label>비밀번호</label>
-      <input id="login-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password">
-    </div>
-    <button class="login-btn" onclick="login()">로그인</button>
+    <button class="login-btn" id="login-btn" onclick="handleLoginClick()">로그인</button>
     <div class="login-error" id="login-error"></div>
+    <p style="margin-top:24px; font-size:11px; color:#b0b8c1; text-align:center;">© 2026 방인배 all rights reserved.</p>
   </div>
+</div>
+
+<!-- ════════════════ 학생 화면 ════════════════ -->
+<div id="student-screen" style="display:none">
+  <div class="student-header">
+    <div>
+      <div class="school-name" id="student-school-name"></div>
+      <div class="mode-badge">학생용 조회화면</div>
+    </div>
+    <button class="logout-btn" onclick="studentLogout()">나가기</button>
+  </div>
+
+  <div class="tab-panels">
+
+    <!-- 1. 학사일정 -->
+    <div id="st-tab-academic" class="tab-panel">
+      <div class="month-nav">
+        <button class="nav-btn" onclick="stMoveMonth(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="month-label" id="st-academic-month-label"></span>
+        <button class="today-btn" onclick="stGoToday('academic')">이번 달</button>
+        <button class="nav-btn" onclick="stMoveMonth(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div class="cal-wrap"><div id="st-academic-content"></div></div>
+    </div>
+
+    <!-- 2. 수업시간표 -->
+    <div id="st-tab-timetable" class="tab-panel active">
+      <div class="class-selector-bar">
+        <select id="student-grade-select" onchange="onStudentGradeChange()">
+          <option value="">학년 선택</option>
+        </select>
+        <span class="class-sep">·</span>
+        <select id="student-class-select" onchange="onStudentClassChange()">
+          <option value="">반 선택</option>
+        </select>
+      </div>
+      <div class="week-nav" style="position:sticky;top:0;z-index:9;">
+        <button class="nav-btn" onclick="moveStudentWeek(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="week-label" id="student-week-label"></span>
+        <button class="today-btn" onclick="moveStudentWeek(0, true)">이번 주</button>
+        <button class="nav-btn" onclick="moveStudentWeek(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div class="student-tt-wrap">
+        <div id="student-timetable-content"></div>
+      </div>
+    </div>
+
+    <!-- 3. 일과시간표 -->
+    <div id="st-tab-periods" class="tab-panel">
+      <div class="date-nav">
+        <button class="nav-btn" onclick="stMoveDay(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+        <span class="date-label" id="st-periods-date-label"></span>
+        <button class="today-btn" onclick="stGoToday('periods')">오늘</button>
+        <button class="nav-btn" onclick="stMoveDay(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+      <div id="st-periods-content"></div>
+    </div>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item" onclick="switchStTab('academic', this)">
+      <span class="material-symbols-outlined">calendar_month</span>
+      <span class="nav-label">학사일정</span>
+    </button>
+    <button class="nav-item active" onclick="switchStTab('timetable', this)">
+      <span class="material-symbols-outlined">schedule</span>
+      <span class="nav-label">수업시간표</span>
+    </button>
+    <button class="nav-item" onclick="switchStTab('periods', this)">
+      <span class="material-symbols-outlined">acute</span>
+      <span class="nav-label">일과시간표</span>
+    </button>
+  </nav>
 </div>
 
 <!-- ════════════════ 앱 화면 ════════════════ -->
 <div id="app-screen" style="display:none">
   <header class="app-header">
-    <div>
+    <div style="flex:1">
       <div class="school-name" id="header-school"></div>
       <div class="teacher-name" id="header-name"></div>
     </div>
@@ -369,6 +506,16 @@
         <button class="nav-btn" onclick="moveWeek(1)"><span class="material-symbols-outlined">chevron_right</span></button>
       </div>
       <div class="tt-scroll"><div id="timetable-content"></div></div>
+      <div id="tt-class-bar" class="class-selector-bar" style="display:none">
+        <select id="tt-grade-sel" onchange="onTtGradeChange()"><option value="">학년 선택</option></select>
+        <select id="tt-class-sel" onchange="onTtClassChange()"><option value="">반 선택</option></select>
+      </div>
+      <div id="tt-teacher-search-wrap" class="tt-search-wrap">
+        <input id="tt-teacher-input" class="tt-search-input" type="text" placeholder="선생님 검색..."
+          oninput="onTtTeacherInput()" onkeydown="onTtTeacherKeydown(event)" autocomplete="off">
+        <button class="tt-search-clear" id="tt-teacher-clear" onclick="clearTtTeacherSearch()">×</button>
+        <div class="tt-search-dropdown" id="tt-teacher-dropdown"></div>
+      </div>
     </div>
 
     <!-- 5. 조종례 -->
@@ -414,6 +561,20 @@
   </nav>
 </div>
 
+<!-- 화면 위에 떠있는 FAB들 (교사/학생 공용, position:fixed) -->
+<div id="tt-classroom-fab" style="display:none">
+  <label class="tt-classroom-label">
+    <input type="checkbox" id="tt-classroom-chk" onchange="onClassroomToggle(this.checked)">
+    <span>교과교실</span>
+  </label>
+</div>
+<div id="tt-view-fab" style="display:none">
+  <div class="tt-view-toggle">
+    <button id="tt-toggle-teacher" onclick="setTtView('teacher')">교사별</button>
+    <button id="tt-toggle-class" onclick="setTtView('class')">학급별</button>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL  = 'https://qhfqxrvxjrmnkskklfmm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZnF4cnZ4anJtbmtza2tsZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mjg3NjksImV4cCI6MjA5NjQwNDc2OX0.kuqxcDaWTxzZGXReIk3AtKLwip_cvDYTbi_uAmRHFHw';
@@ -422,6 +583,22 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // ── 상태 ──
 let me = null;
 let currentTab = 'calendar';
+let currentStTab = 'timetable';
+let loginMode = 'teacher'; // 'teacher' | 'student'
+let studentSchool = null;
+let schoolClassroomType = 'normal'; // 'normal' | 'subject_room'
+const isClassroomMode = () => schoolClassroomType === 'subject_room';
+const isShowClassroom = () => isClassroomMode() && localStorage.getItem('showClassroomInTimetable') === 'true';
+const studentState = {
+  week: 0,
+  grade: null,
+  classNum: null,
+  classes: [],
+};
+const stState = {
+  academic: new Date(),
+  periods:  new Date(),
+};
 const state = {
   calendar: new Date(),
   periods:  new Date(),
@@ -429,6 +606,12 @@ const state = {
   academic: new Date(),
   timetableWeek: 0,
   morningGrade: localStorage.getItem('morningGrade') || '1학년',
+};
+const ttClass = {
+  viewMode: localStorage.getItem('eeum_tt_view') || 'teacher',
+  grade:    parseInt(localStorage.getItem('eeum_tt_cls_grade')) || null,
+  classNum: parseInt(localStorage.getItem('eeum_tt_cls_num'))   || null,
+  classes:  [],
 };
 
 // ── 유틸 ──
@@ -488,17 +671,595 @@ function prefillLoginForm(saved) {
   document.getElementById('login-pw').value = saved.password || '';
 }
 
+// ── 로그인 모드 ──
+function setLoginMode(mode) {
+  loginMode = mode;
+  localStorage.setItem('eeum_login_mode', mode);
+  document.querySelectorAll('.login-mode-toggle button').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode)
+  );
+  document.getElementById('teacher-only-fields').style.display = mode === 'student' ? 'none' : 'block';
+  document.getElementById('login-btn').textContent = mode === 'student' ? '학교 접속' : '로그인';
+}
+
+function handleLoginClick() {
+  if (loginMode === 'student') studentLogin();
+  else login();
+}
+
+// ── 학생 로그인 ──
+async function studentLogin() {
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  if (!selectedSchool) { err.textContent = '학교를 선택해주세요.'; return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = '접속 중...';
+
+  studentSchool = selectedSchool;
+  localStorage.setItem('eeum_student_school', JSON.stringify(studentSchool));
+  await showStudentApp(studentSchool);
+
+  btn.disabled = false; btn.textContent = '학교 접속';
+}
+
+async function showStudentApp(school) {
+  studentSchool = school;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('student-screen').style.display = 'flex';
+  document.getElementById('student-screen').style.flexDirection = 'column';
+  document.getElementById('student-school-name').textContent = school.name;
+  schoolClassroomType = school.classroom_type || 'normal';
+
+  // 탭 패널 초기 상태 복원 (teacher switchTab이 active를 제거했을 수 있음)
+  currentStTab = 'timetable';
+  document.querySelectorAll('#student-screen .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#student-screen .nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('st-tab-timetable').classList.add('active');
+  document.querySelector('#student-screen .nav-item:nth-child(2)').classList.add('active');
+  updateClassroomCheckboxVisibility();
+
+  await loadStudentClasses(school.id);
+
+  const savedClass = (() => { try { return JSON.parse(localStorage.getItem('eeum_student_class')); } catch { return null; } })();
+  if (savedClass) {
+    studentState.grade    = savedClass.grade;
+    studentState.classNum = savedClass.classNum;
+    populateGradeSelect();
+    populateClassSelect(studentState.grade);
+  }
+
+  loadStudentTimetable();
+}
+
+async function loadStudentClasses(schoolId) {
+  // 날짜 범위 없이 조회 (RLS anon 허용 여부 및 컬럼 타입 문제 회피)
+  const { data, error } = await sb.from('daily_timetable')
+    .select('grade, class_num')
+    .eq('school_id', schoolId)
+    .limit(3000);
+
+  if (error) { console.warn('[Student] daily_timetable 조회 실패:', error.message); return; }
+  if (!data || data.length === 0) { console.warn('[Student] 데이터 없음 (school_id:', schoolId, ')'); return; }
+
+  const seen = new Set();
+  studentState.classes = data
+    .filter(r => {
+      const g = parseInt(r.grade);
+      const c = parseInt(r.class_num);
+      return g > 0 && c > 0 && !isNaN(g) && !isNaN(c);
+    })
+    .reduce((acc, r) => {
+      const g = parseInt(r.grade), c = parseInt(r.class_num);
+      const k = `${g}_${c}`;
+      if (!seen.has(k)) { seen.add(k); acc.push({ grade: g, class_num: c }); }
+      return acc;
+    }, [])
+    .sort((a, b) => a.grade !== b.grade ? a.grade - b.grade : a.class_num - b.class_num);
+
+  populateGradeSelect();
+}
+
+function populateGradeSelect() {
+  const grades = [...new Set(studentState.classes.map(c => c.grade))].sort((a, b) => a - b);
+  const sel = document.getElementById('student-grade-select');
+  sel.innerHTML = '<option value="">학년 선택</option>' +
+    grades.map(g => `<option value="${g}" ${studentState.grade == g ? 'selected' : ''}>${g}학년</option>`).join('');
+}
+
+function populateClassSelect(grade) {
+  const classes = studentState.classes.filter(c => c.grade == grade).map(c => c.class_num).sort((a, b) => a - b);
+  const sel = document.getElementById('student-class-select');
+  sel.innerHTML = '<option value="">반 선택</option>' +
+    classes.map(c => `<option value="${c}" ${studentState.classNum == c ? 'selected' : ''}>${c}반</option>`).join('');
+}
+
+function onStudentGradeChange() {
+  const grade = document.getElementById('student-grade-select').value;
+  studentState.grade    = grade ? parseInt(grade) : null;
+  studentState.classNum = null;
+  populateClassSelect(grade);
+  loadStudentTimetable();
+}
+
+function onStudentClassChange() {
+  const classNum = document.getElementById('student-class-select').value;
+  studentState.classNum = classNum ? parseInt(classNum) : null;
+  if (studentState.grade && studentState.classNum) {
+    localStorage.setItem('eeum_student_class', JSON.stringify({ grade: studentState.grade, classNum: studentState.classNum }));
+  }
+  loadStudentTimetable();
+}
+
+function studentLogout() {
+  studentSchool = null;
+  document.getElementById('student-screen').style.display = 'none';
+  document.getElementById('tt-classroom-fab').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  selectedSchool = null;
+  document.getElementById('school-input').value = '';
+  document.getElementById('school-input').classList.remove('has-value');
+  document.getElementById('region-group').style.display = 'none';
+}
+
+function moveStudentWeek(delta, reset = false) {
+  studentState.week = reset ? 0 : studentState.week + delta;
+  loadStudentTimetable();
+}
+
+function switchStTab(tab, btn) {
+  document.querySelectorAll('#student-screen .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#student-screen .nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(`st-tab-${tab}`).classList.add('active');
+  if (btn) btn.classList.add('active');
+  currentStTab = tab;
+  updateClassroomCheckboxVisibility();
+  if (tab === 'academic') loadStAcademic();
+  if (tab === 'periods')  loadStPeriods();
+}
+
+function stMoveMonth(delta) {
+  stState.academic.setMonth(stState.academic.getMonth() + delta);
+  loadStAcademic();
+}
+
+function stMoveDay(delta) {
+  stState.periods = skipToWeekday(addDays(stState.periods, delta), delta || 1);
+  loadStPeriods();
+}
+
+function stGoToday(type) {
+  if (type === 'academic') { stState.academic = new Date(); loadStAcademic(); return; }
+  if (type === 'periods') {
+    const t = new Date();
+    const day = t.getDay();
+    stState.periods = skipToWeekday(t, day === 6 ? -1 : 1);
+    loadStPeriods();
+  }
+}
+
+async function loadStAcademic() {
+  const d = stState.academic;
+  const year = d.getFullYear(), month = d.getMonth();
+  document.getElementById('st-academic-month-label').textContent = `${year}년 ${month+1}월`;
+  const el = document.getElementById('st-academic-content');
+
+  const start = `${year}-${p2(month+1)}-01`;
+  const lastDay = new Date(year, month+1, 0).getDate();
+  const end   = `${year}-${p2(month+1)}-${p2(lastDay)}`;
+
+  const { data: events } = await sb.from('academic_calendar')
+    .select('*').eq('school_id', studentSchool.id).gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx');
+
+  const eventMap = {};
+  (events || []).forEach(e => {
+    if (!eventMap[e.event_date]) eventMap[e.event_date] = [];
+    eventMap[e.event_date].push(e);
+  });
+
+  const first = new Date(year, month, 1);
+  const firstDay = first.getDay();
+  const startOffset = firstDay === 0 ? -6 : 1 - firstDay;
+  const gridStart = new Date(year, month, 1 + startOffset);
+
+  let html = `<table class="cal-table"><thead><tr>
+    <th>월</th><th>화</th><th>수</th><th>목</th><th>금</th>
+  </tr></thead><tbody>`;
+
+  let cur = new Date(gridStart);
+  const todayStr = fmt(new Date());
+  let inMonth = false;
+  let weekCount = 0;
+
+  while (weekCount < 7) {
+    const weekHasMonth = [0,1,2,3,4].some(i => {
+      const dd = new Date(cur); dd.setDate(dd.getDate() + i);
+      return dd.getMonth() === month && dd.getFullYear() === year;
+    });
+    if (!weekHasMonth && inMonth) break;
+    if (weekHasMonth) inMonth = true;
+
+    html += '<tr>';
+    for (let i = 0; i < 5; i++) {
+      const day = new Date(cur);
+      day.setDate(day.getDate() + i);
+      const dStr = fmt(day);
+      const inCurMonth = day.getMonth() === month;
+      const isT = dStr === todayStr;
+      const dayEvents = (inCurMonth && eventMap[dStr]) ? eventMap[dStr] : [];
+      const hasHoliday = dayEvents.some(ev => isRedColor(ev.color));
+      const dayNumStyle = (!isT && hasHoliday) ? ' style="color:#e74c3c;"' : '';
+      html += `<td class="${inCurMonth ? '' : 'outside'}">
+        <span class="day-num${isT ? ' today-circle' : ''}"${dayNumStyle}>${day.getDate()}</span>`;
+      dayEvents.forEach(ev => {
+        const color = ev.color || '#95a5a6';
+        const bg = color + '22';
+        html += `<span class="event-pill" style="color:${color};background:${bg};">${ev.content}</span>`;
+      });
+      html += '</td>';
+    }
+    html += '</tr>';
+    cur.setDate(cur.getDate() + 7);
+    weekCount++;
+  }
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function loadStPeriods() {
+  const d = stState.periods;
+  document.getElementById('st-periods-date-label').textContent = dateLabel(d);
+  const el = document.getElementById('st-periods-content');
+
+  const { data } = await sb.from('daily_schedules')
+    .select('*').eq('school_id', studentSchool.id).eq('target_date', fmt(d)).order('display_order');
+
+  if (!data || data.length === 0) {
+    el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
+    return;
+  }
+
+  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
+  const fullDayRow = data.find(r => parseInt(r.period_num) === 0 && r.event_title && !r.is_separate);
+  if (fullDayRow) {
+    el.innerHTML = `<div class="period-card">
+      <div class="period-row" style="background:#e8fcf0;">
+        <div class="p-num" style="color:#15803d;">${fullDayRow.event_title}</div>
+        <div class="p-time" style="color:#15803d;">${fullDayRow.start_time} ~ ${fullDayRow.end_time}</div>
+        <div class="p-event"></div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const allRows = data
+    .filter(r => r.target_grade === 'all' && parseInt(r.period_num) > 0)
+    .sort((a, b) => a.display_order - b.display_order);
+
+  const gradeRows = data.filter(r => r.target_grade !== 'all' && parseInt(r.period_num) > 0);
+
+  if (gradeRows.length > 0) {
+    const checkByOrder = {};
+    [...allRows, ...gradeRows].forEach(s => {
+      const key = s.display_order;
+      if (!checkByOrder[key]) checkByOrder[key] = new Set();
+      checkByOrder[key].add(`${s.start_time}~${s.end_time}`);
+    });
+    if (Object.values(checkByOrder).some(set => set.size > 1)) {
+      const grades = [...new Set(gradeRows.map(s => s.target_grade))].sort();
+      const uid = `stpg_${fmt(d).replace(/-/g, '')}`;
+
+      const buildGradeCard = grade => {
+        const rows = gradeRows
+          .filter(s => s.target_grade === grade)
+          .sort((a, b) => a.display_order - b.display_order);
+        let t = '<div class="period-card">';
+        rows.forEach((r, i) => {
+          t += `<div class="period-row">
+            <div class="p-num">${i + 1}교시</div>
+            <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+            <div class="p-event">${r.event_title || ''}</div>
+          </div>`;
+          if (i < rows.length - 1) {
+            const gap = toMins(rows[i + 1].start_time) - toMins(r.end_time);
+            if (gap >= 40) {
+              t += `<div class="period-row period-row-lunch">
+                <div class="p-num" style="color:#c2410c;">점심</div>
+                <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${rows[i + 1].start_time}</div>
+                <div class="p-event"></div>
+              </div>`;
+            }
+          }
+        });
+        t += '</div>';
+        return t;
+      };
+
+      let html = `<div id="${uid}_warn" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:#fff5f5;border-radius:12px;margin:12px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="material-symbols-outlined" style="color:#f43f5e;font-size:18px;">warning</span>
+          <span style="font-size:13px;color:#9f1239;font-weight:600;">학년별로 일과 시간이 다릅니다.</span>
+        </div>
+        <div style="display:flex;gap:6px;">`;
+      grades.forEach(g => {
+        html += `<button class="period-grade-btn" onclick="_periodGradeSelect('${uid}','${g}','st-periods-content')">${g}학년</button>`;
+      });
+      html += `</div></div>`;
+
+      html += `<div id="${uid}_sched" style="display:none;">`;
+      grades.forEach(g => {
+        html += `<div id="${uid}_tbl_${g}" style="display:none;">${buildGradeCard(g)}</div>`;
+      });
+      html += `<div style="display:flex;gap:6px;padding:10px 16px 14px;justify-content:center;">`;
+      grades.forEach(g => {
+        html += `<button class="period-grade-btn" id="${uid}_btn_${g}" onclick="_periodGradeSelect('${uid}','${g}','st-periods-content')">${g}학년</button>`;
+      });
+      html += `</div></div>`;
+
+      el.innerHTML = html;
+      return;
+    }
+  }
+
+  let displayRows = allRows;
+  if (displayRows.length === 0 && gradeRows.length > 0) {
+    const firstGrade = gradeRows[0].target_grade;
+    displayRows = gradeRows
+      .filter(s => s.target_grade === firstGrade)
+      .sort((a, b) => a.display_order - b.display_order);
+  }
+  if (displayRows.length === 0) {
+    el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
+    return;
+  }
+
+  let html = '<div class="period-card">';
+  displayRows.forEach((r, i) => {
+    html += `<div class="period-row">
+      <div class="p-num">${i + 1}교시</div>
+      <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+      <div class="p-event">${r.event_title || ''}</div>
+    </div>`;
+    if (i < displayRows.length - 1) {
+      const gap = toMins(displayRows[i + 1].start_time) - toMins(r.end_time);
+      if (gap >= 40) {
+        html += `<div class="period-row period-row-lunch">
+          <div class="p-num" style="color:#c2410c;">점심</div>
+          <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${displayRows[i + 1].start_time}</div>
+          <div class="p-event"></div>
+        </div>`;
+      }
+    }
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function loadStudentTimetable() {
+  const el = document.getElementById('student-timetable-content');
+  if (!studentSchool || !studentState.grade || !studentState.classNum) {
+    el.innerHTML = '<div style="padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">학년과 반을 선택하세요.</div>';
+    document.getElementById('student-week-label').textContent = '';
+    return;
+  }
+
+  const monday = getMonday(new Date(), studentState.week);
+  const days   = [0,1,2,3,4].map(i => addDays(monday, i));
+  const dates  = days.map(fmt);
+  const todayStr = fmt(new Date());
+
+  document.getElementById('student-week-label').textContent =
+    `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
+
+  el.innerHTML = '<div style="padding:24px;text-align:center;color:#ccc;">불러오는 중...</div>';
+
+  const [ttRes, schRes, acRes] = await Promise.all([
+    sb.from('daily_timetable').select('*')
+      .eq('school_id', studentSchool.id)
+      .in('target_date', dates)
+      .eq('grade', studentState.grade)
+      .eq('class_num', studentState.classNum),
+    sb.from('daily_schedules').select('*')
+      .eq('school_id', studentSchool.id)
+      .in('target_date', dates),
+    sb.from('academic_calendar').select('event_date,content,color')
+      .eq('school_id', studentSchool.id).in('event_date', dates),
+  ]);
+
+  const allInst   = ttRes.data  || [];
+  const allScheds = schRes.data || [];
+
+  const holidayMap = {};
+  (acRes.data || []).forEach(e => {
+    if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
+  });
+
+  // vacated 시그니처: 같은 날+교시의 normal 억제용
+  const vacSigs = new Set();
+  allInst.filter(i => i.status === 'vacated' || i.status === 'absent')
+    .forEach(i => vacSigs.add(`${i.target_date}_${i.period_num}`));
+
+  const maxRows = allScheds.length > 0 ? Math.max(...allScheds.map(s => parseInt(s.display_order)||0)) : 0;
+  const maxInstPeriod = allInst.length > 0
+    ? Math.max(0, ...allInst.filter(i => parseInt(i.period_num)>0).map(i => parseInt(i.period_num))) : 0;
+  const effMax = Math.max(maxRows, maxInstPeriod) || 7;
+
+  if (effMax === 7 && allInst.length === 0 && allScheds.length === 0 && Object.keys(holidayMap).length === 0) {
+    el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">이번 주 시간표가 없습니다.</div>';
+    return;
+  }
+
+  // 전일제 rowspan 사전 계산
+  const spanCells = {};
+  days.forEach(d => {
+    const dStr = fmt(d);
+    const fullDay = allScheds.find(s => s.target_date === dStr && parseInt(s.period_num) === 0 && s.event_title && !s.is_separate);
+    if (fullDay) {
+      const evT = fullDay.event_short_name || fullDay.event_title;
+      spanCells[dStr] = `<td rowspan="${effMax}" class="tt-mc st-cell-event" style="text-align:center;vertical-align:middle;padding:4px;">
+        <span class="st-sub" style="writing-mode:vertical-rl;text-orientation:mixed;">${evT}</span></td>`;
+    }
+  });
+  // 휴업일 오버라이드
+  const holidayRows = {};
+  dates.forEach(dStr => {
+    if (!holidayMap[dStr]) return;
+    const ds = allScheds.filter(s => s.target_date === dStr);
+    const allGs = ds.filter(s => s.target_grade === 'all');
+    const sm = allGs.length > 0 ? Math.max(...allGs.map(s => parseInt(s.display_order)||0))
+             : ds.length > 0   ? Math.max(...ds.map(s => parseInt(s.display_order)||0)) : 0;
+    holidayRows[dStr] = sm > 0 ? sm : effMax;
+    spanCells[dStr] = buildHolidayCell(holidayRows[dStr], holidayMap[dStr]);
+  });
+
+  const dayLabels = ['월','화','수','목','금'];
+  let html = `<table class="tt-table"><thead><tr><th></th>`;
+  days.forEach((d, i) => {
+    const dStr = fmt(d);
+    html += `<th class="${dStr===todayStr?'today-col':''}">${dayLabels[i]}<br>
+      <span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth()+1)}/${p2(d.getDate())}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  const _gradeStr = String(studentState.grade);
+  const _todayGradeScheds = allScheds.filter(s => s.target_date === todayStr && String(s.target_grade) === _gradeStr);
+  const _todayAllScheds   = allScheds.filter(s => s.target_date === todayStr && s.target_grade === 'all');
+  const _todayGradeMax = _todayGradeScheds.length > 0 ? Math.max(..._todayGradeScheds.map(s => parseInt(s.display_order) || 0)) : 0;
+  const _todayAllMax   = _todayAllScheds.length > 0   ? Math.max(..._todayAllScheds.map(s => parseInt(s.display_order) || 0))   : 0;
+  const _todayInstMax  = Math.max(0, ...allInst.filter(i => i.target_date === todayStr && parseInt(i.period_num) > 0).map(i => parseInt(i.period_num)));
+  const todayMax = _todayGradeMax > 0 ? _todayGradeMax : (_todayAllMax > 0 ? _todayAllMax : (_todayInstMax || effMax));
+  for (let row = 1; row <= effMax; row++) {
+    html += `<tr><td class="period-col">${row}</td>`;
+    days.forEach(d => {
+      const dStr = fmt(d);
+      const todayCls = dStr === todayStr && row <= todayMax
+        ? (row === 1 ? 'tt-today-first' : row === todayMax ? 'tt-today-last' : 'tt-today-mid') : '';
+      if (spanCells[dStr]) { if (row === 1) html += injectTodayClass(spanCells[dStr], todayCls); if (!holidayRows[dStr] || row <= holidayRows[dStr]) return; }
+      html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, vacSigs), todayCls);
+    });
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+}
+
+function injectTodayClass(tdHtml, cls) {
+  if (!cls) return tdHtml;
+  return tdHtml.replace(/ class="/, ` class="${cls} `);
+}
+
+function buildHolidayCell(rows, name) {
+  return `<td rowspan="${rows}" class="tt-mc tt-holiday-cell" style="text-align:center;vertical-align:middle;padding:4px;">
+    <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;color:#dc2626;">${name}</span>
+  </td>`;
+}
+
+function buildStudentCell(dateStr, rowOrder, allInst, allScheds, vacSigs, showTeacher = false) {
+  const dayScheds = allScheds.filter(s => s.target_date === dateStr);
+
+  // 일과 범위 초과 → 빈 셀
+  if (dayScheds.length > 0) {
+    const dayMax = Math.max(...dayScheds.map(s => parseInt(s.display_order)||0));
+    if (rowOrder > dayMax) return `<td class="tt-c-nodata"></td>`;
+  }
+
+  // display_order → period_num 매핑
+  const schedEntry = dayScheds.find(s =>
+    s.target_grade === 'all' && parseInt(s.display_order) === rowOrder && parseInt(s.period_num) > 0
+  ) || dayScheds.find(s => parseInt(s.display_order) === rowOrder) || null;
+  let actualPeriod = rowOrder;
+  if (schedEntry && parseInt(schedEntry.period_num) > 0) actualPeriod = parseInt(schedEntry.period_num);
+
+  // 학년별 display_order→period_num 매핑
+  const _gpm = {};
+  dayScheds.forEach(s => {
+    if (s.target_grade === 'all' || parseInt(s.period_num) <= 0 || parseInt(s.display_order) !== rowOrder) return;
+    _gpm[String(s.target_grade)] = parseInt(s.period_num);
+  });
+  const _hasGS = Object.keys(_gpm).length > 0;
+
+  // 전체 학년 행사 (전일제 아님) → 임장X: 녹색, 임장O: 보라색
+  const periodScheds = dayScheds.filter(s => parseInt(s.display_order) === rowOrder && parseInt(s.period_num) !== 0);
+  if (periodScheds.length > 0 && periodScheds.every(s => s.event_title && s.event_title.trim() !== '')) {
+    const hasSep = periodScheds.some(s => s.is_separate);
+    const cls = hasSep ? 'st-cell-event-sep' : 'st-cell-event';
+    const evT = periodScheds[0].event_short_name || periodScheds[0].event_title.slice(0, 5);
+    return `<td class="tt-mc ${cls}"><span class="st-sub">${evT}</span></td>`;
+  }
+
+  // 이 학년 대상 행사 (특정 학년 대상)
+  const gradeEvent = periodScheds.find(s =>
+    String(s.target_grade) === String(studentState.grade) && s.event_title
+  );
+  if (gradeEvent) {
+    const cls = gradeEvent.is_separate ? 'st-cell-event-sep' : 'st-cell-event';
+    const evT = gradeEvent.event_short_name || gradeEvent.event_title.slice(0, 5);
+    return `<td class="tt-mc ${cls}"><span class="st-sub">${evT}</span></td>`;
+  }
+
+  // 인스턴스 수집
+  const inst = allInst.filter(i => {
+    if (i.target_date !== dateStr) return false;
+    const g = String(i.grade);
+    if (!_hasGS) return parseInt(i.period_num) === actualPeriod;
+    if (_gpm[g] !== undefined) return parseInt(i.period_num) === _gpm[g];
+    return parseInt(i.period_num) === actualPeriod;
+  });
+
+  const hasVacated = inst.some(i => i.status === 'vacated' || i.status === 'absent');
+  const display = inst.filter(i => i.status !== 'vacated' && i.status !== 'absent');
+
+  if (hasVacated && display.length === 0) {
+    const hasReinf = inst.some(i => i.status === 'reinforcement');
+    return `<td class="tt-mc ${hasReinf ? 'st-cell-vacated-reinf' : 'st-cell-vacated'}"></td>`;
+  }
+  if (display.length === 0) return `<td class="tt-mc"></td>`;
+
+  // 우선순위: reinforcement > changed > normal
+  const pick = display.find(i => i.status === 'reinforcement') ||
+               display.find(i => i.status === 'changed') ||
+               display[0];
+
+  const subName = pick.subject_name.replace(/^(supervision_|fixed_)/, '').slice(0, showTeacher ? 5 : 6);
+  const cellCls = pick.status === 'reinforcement' ? 'st-cell-reinf'
+                : pick.status === 'changed'        ? 'st-cell-changed'
+                : 'st-cell-normal';
+  const teacherSpan = showTeacher && pick.teacher_name
+    ? `<span class="st-teacher-nm">${pick.teacher_name}</span>` : '';
+  const roomSpan = isShowClassroom() && pick.room_name && pick.status !== 'reinforcement'
+    ? `<span class="st-teacher-nm" style="color:#64748b;">${pick.room_name}</span>` : '';
+
+  return `<td class="tt-mc ${cellCls}"><span class="st-sub">${subName}</span>${teacherSpan}${roomSpan}</td>`;
+}
+
 // ── 초기화 ──
 window.onload = async () => {
+  // 로그인 모드 복원
+  const savedMode = localStorage.getItem('eeum_login_mode') || 'teacher';
+  setLoginMode(savedMode);
+
   await loadSchools();
+
+  // 교사 세션 확인
   const { data: { session } } = await sb.auth.getSession();
   if (session) { showApp(session.user); return; }
 
+  // 교사 자동 로그인
   const saved = loadCredentials();
   if (saved) {
     const { data, error } = await sb.auth.signInWithPassword({ email: saved.email, password: saved.password });
     if (!error && data.user) { showApp(data.user); return; }
     prefillLoginForm(saved);
+  }
+
+  // 학생 세션 복원
+  if (loginMode === 'student') {
+    const savedStudentSchool = (() => { try { return JSON.parse(localStorage.getItem('eeum_student_school')); } catch { return null; } })();
+    if (savedStudentSchool) {
+      await showStudentApp(savedStudentSchool);
+      return;
+    }
   }
 };
 
@@ -513,7 +1274,7 @@ let allSchools = [];
 let selectedSchool = null;
 
 async function loadSchools() {
-  const { data } = await sb.from('schools').select('id, name, code, region').order('name');
+  const { data } = await sb.from('schools').select('id, name, code, region, classroom_type').order('name');
   allSchools = data || [];
 }
 
@@ -587,6 +1348,7 @@ async function login() {
     btn.disabled = false; btn.textContent = '로그인'; return;
   }
 
+  btn.disabled = false; btn.textContent = '로그인';
   saveCredentials(email, pw, school, name);
   showApp(data.user);
 }
@@ -602,6 +1364,8 @@ async function logout() {
   document.getElementById('login-name').value = '';
   document.getElementById('login-pw').value = '';
   document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('tt-classroom-fab').style.display = 'none';
+  document.getElementById('tt-view-fab').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
 
@@ -612,9 +1376,26 @@ function showApp(user) {
   document.getElementById('header-school').textContent = user.user_metadata.school_name || '';
   document.getElementById('header-name').textContent = user.user_metadata.name + ' 선생님';
 
-  // 학교명 표시 (schools 테이블에서 가져오기)
-  sb.from('schools').select('name').eq('id', user.user_metadata.school_id).single()
-    .then(({ data }) => { if (data) document.getElementById('header-school').textContent = data.name; });
+  // 학교명 + 교과교실제 여부
+  sb.from('schools').select('name, classroom_type').eq('id', user.user_metadata.school_id).single()
+    .then(({ data }) => {
+      if (!data) return;
+      document.getElementById('header-school').textContent = data.name;
+      schoolClassroomType = data.classroom_type || 'normal';
+      updateClassroomCheckboxVisibility();
+    });
+
+  // 체크박스 초기 상태 (classroom_type은 schools 비동기 조회 후 updateClassroomCheckboxVisibility 호출)
+  document.getElementById('tt-classroom-chk').checked = isShowClassroom();
+
+  // 시간표 탭 교사별/학급별 토글 초기화
+  document.getElementById('tt-toggle-teacher').classList.toggle('active', ttClass.viewMode === 'teacher');
+  document.getElementById('tt-toggle-class').classList.toggle('active', ttClass.viewMode === 'class');
+  if (ttClass.viewMode === 'class') {
+    document.getElementById('tt-class-bar').style.display = 'flex';
+    loadTtClasses();
+  }
+  loadTtTeacherList();
 
   const savedGrade = state.morningGrade;
   document.querySelectorAll('.grade-tab').forEach(t => {
@@ -635,6 +1416,8 @@ function switchTab(tab, btn) {
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
   currentTab = tab;
+  document.getElementById('tt-view-fab').style.display = tab === 'timetable' ? 'block' : 'none';
+  updateClassroomCheckboxVisibility();
   loadTab(tab);
 }
 
@@ -644,6 +1427,21 @@ function loadTab(tab) {
   if (tab === 'periods')   loadPeriods();
   if (tab === 'timetable') loadTimetable();
   if (tab === 'morning')   loadMorning();
+}
+
+function updateClassroomCheckboxVisibility() {
+  const fab = document.getElementById('tt-classroom-fab');
+  if (!fab) return;
+  const onTimetable = loginMode === 'student' ? currentStTab === 'timetable' : currentTab === 'timetable';
+  const show = isClassroomMode() && onTimetable;
+  fab.style.display = show ? 'block' : 'none';
+  if (show) document.getElementById('tt-classroom-chk').checked = isShowClassroom();
+}
+
+function onClassroomToggle(checked) {
+  localStorage.setItem('showClassroomInTimetable', checked ? 'true' : 'false');
+  if (loginMode === 'student') loadStudentTimetable();
+  else loadTimetable();
 }
 
 // ── 날짜 이동 ──
@@ -1084,7 +1882,7 @@ async function loadAcademic() {
 }
 
 // ════════════════ 3. 일과시간표 ════════════════
-function _periodGradeSelect(uid, grade) {
+function _periodGradeSelect(uid, grade, containerId) {
   const warn  = document.getElementById(`${uid}_warn`);
   const sched = document.getElementById(`${uid}_sched`);
   if (warn)  warn.style.display  = 'none';
@@ -1097,7 +1895,7 @@ function _periodGradeSelect(uid, grade) {
   });
   const btn = document.getElementById(`${uid}_btn_${grade}`);
   if (btn) { btn.style.background = '#1a73e8'; btn.style.color = 'white'; }
-  const el = document.getElementById('periods-content');
+  const el = document.getElementById(containerId || 'periods-content');
   if (el) el.scrollTop = 0;
 }
 
@@ -1239,30 +2037,301 @@ async function loadPeriods() {
 }
 
 // ════════════════ 4. 주간 시간표 ════════════════
-async function loadTimetable() {
+// ── 교사 시간표 탭 교사 검색 ──
+let ttTeacherList = [];   // [{ id, name }]
+let ttTargetTeacherId = null;  // null = 내 시간표
+let _ttDropFocusIdx = -1;
+
+async function loadTtTeacherList() {
+  if (ttTeacherList.length > 0) return;
+  const schoolId = me.user_metadata.school_id;
+  const { data } = await sb.from('daily_timetable')
+    .select('teacher_id, teacher_name')
+    .eq('school_id', schoolId)
+    .limit(5000);
+  if (!data) return;
+  const seen = new Set();
+  ttTeacherList = data
+    .filter(r => r.teacher_id && r.teacher_name && !seen.has(r.teacher_id) && seen.add(r.teacher_id))
+    .map(r => ({ id: String(r.teacher_id), name: r.teacher_name }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+
+function onTtTeacherInput() {
+  const q = document.getElementById('tt-teacher-input').value.trim();
+  document.getElementById('tt-teacher-clear').style.display = q ? 'block' : 'none';
+  _ttDropFocusIdx = -1;
+  if (!q) {
+    hideTtDropdown();
+    if (ttTargetTeacherId !== null) { ttTargetTeacherId = null; loadTimetable(); }
+    return;
+  }
+  const matches = ttTeacherList.filter(t => t.name.includes(q));
+  renderTtDropdown(matches, q);
+  // 정확히 일치하는 이름이 있으면 즉시 반영
+  const exact = ttTeacherList.find(t => t.name === q);
+  if (exact && exact.id !== ttTargetTeacherId) { ttTargetTeacherId = exact.id; loadTimetable(); }
+}
+
+function renderTtDropdown(matches, q) {
+  const dd = document.getElementById('tt-teacher-dropdown');
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map((t, i) =>
+    `<div class="tt-search-item" data-id="${t.id}" data-name="${t.name}"
+      onmousedown="selectTtTeacher('${t.id}','${t.name}')">${highlight(t.name, q)}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function highlight(name, q) {
+  return name.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'g'), '<em>$1</em>');
+}
+
+function hideTtDropdown() {
+  document.getElementById('tt-teacher-dropdown').style.display = 'none';
+  _ttDropFocusIdx = -1;
+}
+
+function selectTtTeacher(id, name) {
+  ttTargetTeacherId = id;
+  document.getElementById('tt-teacher-input').value = name;
+  document.getElementById('tt-teacher-clear').style.display = 'block';
+  hideTtDropdown();
+  loadTimetable();
+}
+
+function clearTtTeacherSearch() {
+  document.getElementById('tt-teacher-input').value = '';
+  document.getElementById('tt-teacher-clear').style.display = 'none';
+  hideTtDropdown();
+  ttTargetTeacherId = null;
+  loadTimetable();
+}
+
+function onTtTeacherKeydown(e) {
+  const dd = document.getElementById('tt-teacher-dropdown');
+  const items = dd.querySelectorAll('.tt-search-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _ttDropFocusIdx = Math.min(_ttDropFocusIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _ttDropFocusIdx = Math.max(_ttDropFocusIdx - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const focused = items[_ttDropFocusIdx] || items[0];
+    if (focused) selectTtTeacher(focused.dataset.id, focused.dataset.name);
+    return;
+  } else if (e.key === 'Escape') {
+    hideTtDropdown(); return;
+  } else return;
+  items.forEach((el, i) => el.classList.toggle('focused', i === _ttDropFocusIdx));
+  items[_ttDropFocusIdx]?.scrollIntoView({ block: 'nearest' });
+}
+
+// ── 교사 시간표 탭 학급별 뷰 ──
+function setTtView(mode) {
+  ttClass.viewMode = mode;
+  localStorage.setItem('eeum_tt_view', mode);
+  document.getElementById('tt-toggle-teacher').classList.toggle('active', mode === 'teacher');
+  document.getElementById('tt-toggle-class').classList.toggle('active', mode === 'class');
+  const bar = document.getElementById('tt-class-bar');
+  const searchWrap = document.getElementById('tt-teacher-search-wrap');
+  if (mode === 'class') {
+    bar.style.display = 'flex';
+    searchWrap.style.display = 'none';
+    if (ttClass.classes.length === 0) loadTtClasses().then(() => loadTimetable());
+    else loadTimetable();
+  } else {
+    bar.style.display = 'none';
+    searchWrap.style.display = '';
+    loadTimetable();
+  }
+}
+
+async function loadTtClasses() {
+  const schoolId = me.user_metadata.school_id;
+  const { data } = await sb.from('daily_timetable').select('grade, class_num').eq('school_id', schoolId).limit(3000);
+  if (!data) return;
+  const seen = new Set();
+  ttClass.classes = data
+    .filter(r => parseInt(r.grade) > 0 && parseInt(r.class_num) > 0)
+    .reduce((acc, r) => {
+      const k = `${r.grade}_${r.class_num}`;
+      if (!seen.has(k)) { seen.add(k); acc.push({ grade: parseInt(r.grade), class_num: parseInt(r.class_num) }); }
+      return acc;
+    }, [])
+    .sort((a, b) => a.grade !== b.grade ? a.grade - b.grade : a.class_num - b.class_num);
+  populateTtGradeSelect();
+}
+
+function populateTtGradeSelect() {
+  const grades = [...new Set(ttClass.classes.map(c => c.grade))].sort((a, b) => a - b);
+  document.getElementById('tt-grade-sel').innerHTML =
+    '<option value="">학년 선택</option>' +
+    grades.map(g => `<option value="${g}" ${ttClass.grade == g ? 'selected' : ''}>${g}학년</option>`).join('');
+  populateTtClassSelect(ttClass.grade);
+}
+
+function populateTtClassSelect(grade) {
+  const classes = ttClass.classes.filter(c => c.grade == grade).map(c => c.class_num).sort((a, b) => a - b);
+  document.getElementById('tt-class-sel').innerHTML =
+    '<option value="">반 선택</option>' +
+    classes.map(c => `<option value="${c}" ${ttClass.classNum == c ? 'selected' : ''}>${c}반</option>`).join('');
+}
+
+function onTtGradeChange() {
+  ttClass.grade = parseInt(document.getElementById('tt-grade-sel').value) || null;
+  ttClass.classNum = null;
+  localStorage.setItem('eeum_tt_cls_grade', ttClass.grade || '');
+  localStorage.removeItem('eeum_tt_cls_num');
+  populateTtClassSelect(ttClass.grade);
+  loadTimetable();
+}
+
+function onTtClassChange() {
+  ttClass.classNum = parseInt(document.getElementById('tt-class-sel').value) || null;
+  localStorage.setItem('eeum_tt_cls_num', ttClass.classNum || '');
+  loadTimetable();
+}
+
+async function loadClassTtForTeacher() {
+  const el = document.getElementById('timetable-content');
+  if (!ttClass.grade || !ttClass.classNum) {
+    el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">학년과 반을 선택해주세요.</div>';
+    return;
+  }
   const monday = getMonday(new Date(), state.timetableWeek);
   const days   = [0,1,2,3,4].map(i => addDays(monday, i));
   const dates  = days.map(fmt);
   const todayStr = fmt(new Date());
   const schoolId = me.user_metadata.school_id;
-  const teacherId = String(me.user_metadata.teacher_id);
+
+  document.getElementById('timetable-week-label').textContent =
+    `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
+
+  const [ttRes, schRes, acRes] = await Promise.all([
+    sb.from('daily_timetable').select('*')
+      .eq('school_id', schoolId).in('target_date', dates)
+      .eq('grade', ttClass.grade).eq('class_num', ttClass.classNum),
+    sb.from('daily_schedules').select('*')
+      .eq('school_id', schoolId).in('target_date', dates),
+    sb.from('academic_calendar').select('event_date,content,color')
+      .eq('school_id', schoolId).in('event_date', dates),
+  ]);
+
+  const allInst   = ttRes.data  || [];
+  const allScheds = schRes.data || [];
+
+  const holidayMap = {};
+  (acRes.data || []).forEach(e => {
+    if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
+  });
+
+  const vacSigs = new Set();
+  allInst.filter(i => i.status === 'vacated' || i.status === 'absent').forEach(i =>
+    vacSigs.add(`${i.grade}_${i.class_num}_${i.target_date}_${i.period_num}`)
+  );
+
+  const maxRows = allScheds.length > 0 ? Math.max(...allScheds.map(s => parseInt(s.display_order)||0)) : 0;
+  const maxInstPeriod = allInst.length > 0
+    ? Math.max(0, ...allInst.filter(i => parseInt(i.period_num)>0).map(i => parseInt(i.period_num))) : 0;
+  const effMax = Math.max(maxRows, maxInstPeriod) || 7;
+
+  if (effMax === 7 && allInst.length === 0 && allScheds.length === 0 && Object.keys(holidayMap).length === 0) {
+    el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">이번 주 시간표가 없습니다.</div>';
+    return;
+  }
+
+  const spanCells = {};
+  days.forEach(d => {
+    const dStr = fmt(d);
+    const fullDay = allScheds.find(s => s.target_date === dStr && parseInt(s.period_num) === 0 && s.event_title && !s.is_separate);
+    if (fullDay) {
+      const evT = fullDay.event_short_name || fullDay.event_title;
+      spanCells[dStr] = `<td rowspan="${effMax}" class="tt-mc st-cell-event" style="text-align:center;vertical-align:middle;padding:4px;">
+        <span class="st-sub" style="writing-mode:vertical-rl;text-orientation:mixed;">${evT}</span></td>`;
+    }
+  });
+  const holidayRows = {};
+  dates.forEach(dStr => {
+    if (!holidayMap[dStr]) return;
+    const ds = allScheds.filter(s => s.target_date === dStr);
+    const allGs = ds.filter(s => s.target_grade === 'all');
+    const sm = allGs.length > 0 ? Math.max(...allGs.map(s => parseInt(s.display_order)||0))
+             : ds.length > 0   ? Math.max(...ds.map(s => parseInt(s.display_order)||0)) : 0;
+    holidayRows[dStr] = sm > 0 ? sm : effMax;
+    spanCells[dStr] = buildHolidayCell(holidayRows[dStr], holidayMap[dStr]);
+  });
+
+  const dayLabels = ['월','화','수','목','금'];
+  let html = `<table class="tt-table"><thead><tr><th></th>`;
+  days.forEach((d, i) => {
+    const dStr = fmt(d);
+    html += `<th class="${dStr===todayStr?'today-col':''}">${dayLabels[i]}<br>
+      <span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth()+1)}/${p2(d.getDate())}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  const _gradeStr = String(ttClass.grade);
+  const _todayGradeScheds = allScheds.filter(s => s.target_date === todayStr && String(s.target_grade) === _gradeStr);
+  const _todayAllScheds   = allScheds.filter(s => s.target_date === todayStr && s.target_grade === 'all');
+  const _todayGradeMax = _todayGradeScheds.length > 0 ? Math.max(..._todayGradeScheds.map(s => parseInt(s.display_order)||0)) : 0;
+  const _todayAllMax   = _todayAllScheds.length > 0   ? Math.max(..._todayAllScheds.map(s => parseInt(s.display_order)||0))   : 0;
+  const _todayInstMax  = Math.max(0, ...allInst.filter(i => i.target_date === todayStr && parseInt(i.period_num)>0).map(i => parseInt(i.period_num)));
+  const todayMax = _todayGradeMax > 0 ? _todayGradeMax : (_todayAllMax > 0 ? _todayAllMax : (_todayInstMax || effMax));
+
+  for (let row = 1; row <= effMax; row++) {
+    html += `<tr><td class="period-col">${row}</td>`;
+    days.forEach(d => {
+      const dStr = fmt(d);
+      const todayCls = dStr === todayStr && row <= todayMax
+        ? (row === 1 ? 'tt-today-first' : row === todayMax ? 'tt-today-last' : 'tt-today-mid') : '';
+      if (spanCells[dStr]) { if (row === 1) html += injectTodayClass(spanCells[dStr], todayCls); if (!holidayRows[dStr] || row <= holidayRows[dStr]) return; }
+      html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, vacSigs, true), todayCls);
+    });
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+}
+
+async function loadTimetable() {
+  if (ttClass.viewMode === 'class') { await loadClassTtForTeacher(); return; }
+  const monday = getMonday(new Date(), state.timetableWeek);
+  const days   = [0,1,2,3,4].map(i => addDays(monday, i));
+  const dates  = days.map(fmt);
+  const todayStr = fmt(new Date());
+  const schoolId = me.user_metadata.school_id;
+  const teacherId = ttTargetTeacherId || String(me.user_metadata.teacher_id);
+
+  // 검색창 숨김 여부: 학급별 모드일 때 숨김
+  document.getElementById('tt-teacher-search-wrap').style.display = ttClass.viewMode === 'class' ? 'none' : '';
 
   document.getElementById('timetable-week-label').textContent =
     `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
 
   const el = document.getElementById('timetable-content');
 
-  const [ttRes, schRes] = await Promise.all([
+  const [ttRes, schRes, acRes] = await Promise.all([
     // 내 수업 + 내 결강 슬롯을 보강하는 타인의 인스턴스(changed_user_id = me) 함께 조회
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).in('target_date', dates)
       .or(`teacher_id.eq.${teacherId},and(changed_user_id.eq.${teacherId},status.eq.reinforcement)`),
     sb.from('daily_schedules').select('*')
-      .eq('school_id', schoolId).in('target_date', dates)
+      .eq('school_id', schoolId).in('target_date', dates),
+    sb.from('academic_calendar').select('event_date,content,color')
+      .eq('school_id', schoolId).in('event_date', dates),
   ]);
 
   const allInst   = ttRes.data  || [];
   const allScheds = schRes.data || [];
+
+  const holidayMap = {};
+  (acRes.data || []).forEach(e => {
+    if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
+  });
 
   // hiddenIds: vacated 인스턴스와 동일 서명(교사+학년+반+날짜+교시)의 normal을 숨김
   const hiddenIds = new Set();
@@ -1286,7 +2355,7 @@ async function loadTimetable() {
     : 0;
   const effMax = Math.max(maxRows, maxInstPeriod) || 7;
 
-  if (effMax === 7 && allInst.length === 0) {
+  if (effMax === 7 && allInst.length === 0 && Object.keys(holidayMap).length === 0) {
     el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">이번 주 수업이 없습니다.</div>';
     return;
   }
@@ -1305,6 +2374,16 @@ async function loadTimetable() {
       </td>`;
     }
   });
+  const holidayRows = {};
+  dates.forEach(dStr => {
+    if (!holidayMap[dStr]) return;
+    const ds = allScheds.filter(s => s.target_date === dStr);
+    const allGs = ds.filter(s => s.target_grade === 'all');
+    const sm = allGs.length > 0 ? Math.max(...allGs.map(s => parseInt(s.display_order)||0))
+             : ds.length > 0   ? Math.max(...ds.map(s => parseInt(s.display_order)||0)) : 0;
+    holidayRows[dStr] = sm > 0 ? sm : effMax;
+    spanCells[dStr] = buildHolidayCell(holidayRows[dStr], holidayMap[dStr]);
+  });
 
   const dayLabels = ['월','화','수','목','금'];
   let html = `<table class="tt-table"><thead><tr><th></th>`;
@@ -1314,15 +2393,22 @@ async function loadTimetable() {
       <span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth()+1)}/${p2(d.getDate())}</span></th>`;
   });
   html += `</tr></thead><tbody>`;
+  const _todayAllScheds2  = allScheds.filter(s => s.target_date === todayStr && s.target_grade === 'all');
+  const _todayInstMax2    = Math.max(0, ...allInst.filter(i => i.target_date === todayStr && parseInt(i.period_num) > 0).map(i => parseInt(i.period_num)));
+  const todayMax2 = _todayAllScheds2.length > 0
+    ? Math.max(..._todayAllScheds2.map(s => parseInt(s.display_order) || 0))
+    : (_todayInstMax2 || effMax);
   for (let row = 1; row <= effMax; row++) {
     html += `<tr><td class="period-col">${row}</td>`;
     days.forEach(d => {
       const dStr = fmt(d);
+      const todayCls = dStr === todayStr && row <= todayMax2
+        ? (row === 1 ? 'tt-today-first' : row === todayMax2 ? 'tt-today-last' : 'tt-today-mid') : '';
       if (spanCells[dStr]) {
-        if (row === 1) html += spanCells[dStr]; // rowspan이 나머지 행 커버
-        return;
+        if (row === 1) html += injectTodayClass(spanCells[dStr], todayCls);
+        if (!holidayRows[dStr] || row <= holidayRows[dStr]) return;
       }
-      html += buildMobileCell(dStr, row, allInst, allScheds, hiddenIds, teacherId);
+      html += injectTodayClass(buildMobileCell(dStr, row, allInst, allScheds, hiddenIds, teacherId), todayCls);
     });
     html += `</tr>`;
   }
@@ -1501,10 +2587,12 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
 
   const isFixed = main.subject_name.startsWith('fixed_');
   const subText = isFixed ? '' : (main.grade > 0 ? `${main.grade}-${main.class_num}` : '');
+  const roomText = isShowClassroom() && main.room_name && !isSup && !isReinf ? main.room_name : '';
 
   return `<td class="${cellCls}"><div class="tt-bb">
     <div class="tt-bt">${dispSub}${badge}</div>
     ${subText ? `<div class="tt-bs">${subText}</div>` : ''}
+    ${roomText ? `<div class="tt-bs" style="color:#64748b;">${roomText}</div>` : ''}
   </div></td>`;
 }
 
