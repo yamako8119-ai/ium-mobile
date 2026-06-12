@@ -1952,12 +1952,31 @@ async function loadPeriods() {
           .filter(s => s.target_grade === grade)
           .sort((a, b) => a.display_order - b.display_order);
         let t = '<div class="period-card">';
+        let pc = 0;
         rows.forEach((r, i) => {
-          t += `<div class="period-row">
-            <div class="p-num">${i + 1}교시</div>
-            <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
-            <div class="p-event">${r.event_title || ''}</div>
-          </div>`;
+          const isEv    = r.event_title && r.event_title.trim() !== '' && !r.is_separate;
+          const isSepEv = r.event_title && r.event_title.trim() !== '' && r.is_separate;
+          const evLabel = r.event_short_name || r.event_title || '';
+          if (isEv) {
+            t += `<div class="period-row" style="background:#e8fcf0;">
+              <div class="p-num" style="color:#15803d;">${evLabel}</div>
+              <div class="p-time" style="color:#15803d;">${r.start_time} ~ ${r.end_time}</div>
+              <div class="p-event"></div>
+            </div>`;
+          } else if (isSepEv) {
+            t += `<div class="period-row" style="background:#f3e8ff;">
+              <div class="p-num" style="color:#6b21a8;">${evLabel}</div>
+              <div class="p-time" style="color:#6b21a8;">${r.start_time} ~ ${r.end_time}</div>
+              <div class="p-event"></div>
+            </div>`;
+          } else {
+            pc++;
+            t += `<div class="period-row">
+              <div class="p-num">${pc}교시</div>
+              <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+              <div class="p-event"></div>
+            </div>`;
+          }
           if (i < rows.length - 1) {
             const gap = toMins(rows[i + 1].start_time) - toMins(r.end_time);
             if (gap >= 40) {
@@ -2002,12 +2021,22 @@ async function loadPeriods() {
   }
 
   // 공통 일과 (all 또는 모든 학년 동일)
-  let displayRows = allRows;
-  if (displayRows.length === 0 && gradeRows.length > 0) {
-    const firstGrade = gradeRows[0].target_grade;
-    displayRows = gradeRows
-      .filter(s => s.target_grade === firstGrade)
-      .sort((a, b) => a.display_order - b.display_order);
+  // allRows에 없는 display_order(기타일정 등)는 gradeRows 대표 행으로 보완
+  const allOrderSet = new Set(allRows.map(r => r.display_order));
+  const extraRows = [];
+  gradeRows.forEach(r => {
+    if (!allOrderSet.has(r.display_order) && !extraRows.some(e => e.display_order === r.display_order))
+      extraRows.push(r);
+  });
+  let displayRows = [...allRows, ...extraRows].sort((a, b) => a.display_order - b.display_order);
+
+  if (displayRows.length === 0) {
+    if (gradeRows.length > 0) {
+      const firstGrade = gradeRows[0].target_grade;
+      displayRows = gradeRows
+        .filter(s => s.target_grade === firstGrade)
+        .sort((a, b) => a.display_order - b.display_order);
+    }
   }
   if (displayRows.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
@@ -2015,12 +2044,31 @@ async function loadPeriods() {
   }
 
   let html = '<div class="period-card">';
+  let periodCount = 0;
   displayRows.forEach((r, i) => {
-    html += `<div class="period-row">
-      <div class="p-num">${i + 1}교시</div>
-      <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
-      <div class="p-event">${r.event_title || ''}</div>
-    </div>`;
+    const isEv    = r.event_title && r.event_title.trim() !== '' && !r.is_separate;
+    const isSepEv = r.event_title && r.event_title.trim() !== '' && r.is_separate;
+    const evLabel = r.event_short_name || r.event_title || '';
+    if (isEv) {
+      html += `<div class="period-row" style="background:#e8fcf0;">
+        <div class="p-num" style="color:#15803d;">${evLabel}</div>
+        <div class="p-time" style="color:#15803d;">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-event"></div>
+      </div>`;
+    } else if (isSepEv) {
+      html += `<div class="period-row" style="background:#f3e8ff;">
+        <div class="p-num" style="color:#6b21a8;">${evLabel}</div>
+        <div class="p-time" style="color:#6b21a8;">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-event"></div>
+      </div>`;
+    } else {
+      periodCount++;
+      html += `<div class="period-row">
+        <div class="p-num">${periodCount}교시</div>
+        <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-event"></div>
+      </div>`;
+    }
     if (i < displayRows.length - 1) {
       const gap = toMins(displayRows[i + 1].start_time) - toMins(r.end_time);
       if (gap >= 40) {
