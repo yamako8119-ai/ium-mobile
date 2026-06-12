@@ -921,7 +921,7 @@ async function loadStPeriods() {
     return;
   }
 
-  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const toMins = t => { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 
   const fullDayRow = data.find(r => parseInt(r.period_num) === 0 && r.event_title && !r.is_separate);
   if (fullDayRow) {
@@ -1909,14 +1909,14 @@ async function loadPeriods() {
     .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order');
 
   console.log('[loadPeriods] school_id:', me.user_metadata.school_id, 'date:', fmt(d), 'rows:', data?.length);
-  if (data) data.forEach(r => console.log('  row:', r.display_order, r.period_num, r.target_grade, r.event_title, 'is_sep:', r.is_separate));
+  if (data) data.forEach(r => console.log('  row:', r.display_order, r.period_num, r.target_grade, r.event_title, 'is_sep:', r.is_separate, 'start:', r.start_time, 'end:', r.end_time));
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
     return;
   }
 
-  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const toMins = t => { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 
   // 전일제: period_num=0 이고 event_title 있는 행 (전체 공통)
   const fullDayRow = data.find(r => parseInt(r.period_num) === 0 && r.event_title && !r.is_separate);
