@@ -138,6 +138,7 @@
     .tg-routine { background: #e8f0fe; border-left: 3px solid #1a73e8; }
     .tg-absence { background: #fff3e0; border-left: 3px solid #e65100; }
     .tg-deadline{ background: #fce8e6; border-left: 3px solid #c62828; }
+    .tg-gita    { background: #f0fdf4; border-left: 3px solid #22c55e; color: #166534; }
     .tg-blk-title { font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tg-blk-sub   { font-size: 11px; color: #888; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tg-blk-tag   { font-size: 11px; font-weight: 700; display: inline; margin-left: 3px; }
@@ -916,8 +917,7 @@ async function loadStPeriods() {
   const { data } = await sb.from('daily_schedules')
     .select('*').eq('school_id', studentSchool.id).eq('target_date', fmt(d)).order('display_order');
 
-  console.log('[loadStPeriods] school_id:', studentSchool.id, 'date:', fmt(d), 'rows:', data?.length);
-  if (data) data.forEach(r => console.log('  row:', r.display_order, r.period_num, r.target_grade, r.event_title, 'is_sep:', r.is_separate, 'start:', r.start_time, 'end:', r.end_time));
+
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
@@ -1504,7 +1504,7 @@ async function loadCalendar() {
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
       .eq('target_date', dateStr).order('period_num'),
-    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title')
+    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title,is_separate')
       .eq('school_id', schoolId).eq('target_date', dateStr).gt('period_num', 0)
       .order('display_order'),
     sb.from('personal_tasks').select('*')
@@ -1626,6 +1626,22 @@ async function loadCalendar() {
         grade: t.grade, class_num: t.class_num, fixedCount: cnt,
         start: times.start.slice(0,5), end: times.end.slice(0,5),
         startMins: sH*60+sM, endMins: eH*60+eM
+      });
+    });
+    // 기타일정(임장X) 블록 — daily_schedules의 event_title 행
+    schedules.forEach(s => {
+      if (!s.event_title || s.event_title.trim() === '') return;
+      if (s.is_separate) return;
+      if (!s.start_time || !s.end_time) return;
+      const [sh, sm] = s.start_time.split(':').map(Number);
+      const [eh, em] = s.end_time.split(':').map(Number);
+      events.push({
+        type: 'gita',
+        title: s.event_title,
+        start: s.start_time.slice(0, 5),
+        end: s.end_time.slice(0, 5),
+        startMins: sh * 60 + sm,
+        endMins: eh * 60 + em,
       });
     });
   }
@@ -1911,8 +1927,7 @@ async function loadPeriods() {
   const { data } = await sb.from('daily_schedules')
     .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order');
 
-  console.log('[loadPeriods] school_id:', me.user_metadata.school_id, 'date:', fmt(d), 'rows:', data?.length);
-  if (data) data.forEach(r => console.log('  row:', r.display_order, r.period_num, r.target_grade, r.event_title, 'is_sep:', r.is_separate, 'start:', r.start_time, 'end:', r.end_time));
+
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
