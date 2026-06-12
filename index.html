@@ -916,6 +916,9 @@ async function loadStPeriods() {
   const { data } = await sb.from('daily_schedules')
     .select('*').eq('school_id', studentSchool.id).eq('target_date', fmt(d)).order('display_order');
 
+  console.log('[loadStPeriods] school_id:', studentSchool.id, 'date:', fmt(d), 'rows:', data?.length);
+  if (data) data.forEach(r => console.log('  row:', r.display_order, r.period_num, r.target_grade, r.event_title, 'is_sep:', r.is_separate, 'start:', r.start_time, 'end:', r.end_time));
+
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
     return;
