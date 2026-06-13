@@ -282,6 +282,8 @@
     .tt-bdg-reinf { background: #e11d48; }
     .tt-bdg-im    { background: #a855f7; }
     .tt-bdg-chg   { background: #f57f17; }
+    .tt-c-personal { background: #f1f5f9; box-shadow: inset 0 0 0 1px #cbd5e1; }
+    .tt-c-personal .tt-bt { color: #64748b; }
 
     /* ── 조종례 ── */
     .grade-tab-bar { display: flex; padding: 10px 16px 0; gap: 8px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 52px; z-index: 9; }
@@ -1569,6 +1571,14 @@ async function loadCalendar() {
     timetable.forEach(t => {
       if (t.status === 'vacated' || t.status === 'absent') return;
       if (t.status === 'normal' && vacatedPeriods.has(t.period_num)) return;
+      // 별도 시간표: 기타일정 슬롯이거나 일과에 없는 교시면 표시 안 함 (PC INNER JOIN 로직과 동일)
+      if (t.is_personal) {
+        const _validSched = schedules.some(s =>
+          parseInt(s.period_num) === parseInt(t.period_num) &&
+          (!s.event_title || s.event_title.trim() === '')
+        );
+        if (!_validSched) return;
+      }
       // 단축 수업 감지: 해당 학년의 maxDisplayOrder를 초과하는 교시는 표시 안 함
       if (parseInt(t.grade) > 0) {
         const gradeStr = String(t.grade);
@@ -1621,6 +1631,7 @@ async function loadCalendar() {
       const displayOrderNum = _dispSched ? parseInt(_dispSched.display_order) : parseInt(t.period_num);
       events.push({
         type: 'class', status: t.status, isSup, isFixed,
+        is_personal: !!t.is_personal, short_label: t.short_label || '',
         title: t.subject_name.replace(/^(supervision_|fixed_)/, ''), period_num: t.period_num,
         display_order: displayOrderNum,
         grade: t.grade, class_num: t.class_num, fixedCount: cnt,
@@ -1767,7 +1778,8 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
     if (ev.type === 'class') {
       const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
       titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + ev.title + gradeStr;
-      if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
+      if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#64748b;">${ev.short_label}</span>`;
+      else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
       else if (ev.isSup)                       sub = '<span class="tg-blk-tag" style="color:#6a1b9a;">임장</span>';
     }
@@ -2642,10 +2654,11 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   const isChg   = main.status === 'changed';
 
   let cellCls = 'tt-mc ';
-  if (isSup)        cellCls += 'tt-c-sup';
-  else if (isReinf) cellCls += 'tt-c-reinf';
-  else if (isChg)   cellCls += 'tt-c-changed';
-  else              cellCls += 'tt-c-normal';
+  if (isSup)              cellCls += 'tt-c-sup';
+  else if (isReinf)       cellCls += 'tt-c-reinf';
+  else if (isChg)         cellCls += 'tt-c-changed';
+  else if (main.is_personal) cellCls += 'tt-c-personal';
+  else                    cellCls += 'tt-c-normal';
 
   let badge = '';
   if (isSup)        badge = `<span class="tt-bdg tt-bdg-im">임</span>`;
@@ -2656,7 +2669,7 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   const dispSub = rawSub.length > 5 ? rawSub.slice(0, 4) + '..' : rawSub;
 
   const isFixed = main.subject_name.startsWith('fixed_');
-  const subText = isFixed ? '' : (main.grade > 0 ? `${main.grade}-${main.class_num}` : '');
+  const subText = isFixed ? '' : (main.is_personal ? (main.short_label || '') : (main.grade > 0 ? `${main.grade}-${main.class_num}` : ''));
   const roomText = isShowClassroom() && main.room_name && !isSup && !isReinf ? main.room_name : '';
 
   return `<td class="${cellCls}"><div class="tt-bb">
