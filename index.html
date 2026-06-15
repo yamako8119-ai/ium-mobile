@@ -282,8 +282,8 @@
     .tt-bdg-reinf { background: #e11d48; }
     .tt-bdg-im    { background: #a855f7; }
     .tt-bdg-chg   { background: #f57f17; }
-    .tt-c-personal { background: #f1f5f9; box-shadow: inset 0 0 0 1px #cbd5e1; }
-    .tt-c-personal .tt-bt { color: #64748b; }
+    .tt-c-personal { background: #e8f2fc; box-shadow: inset 0 0 0 1px #c2deff; }
+    .tt-c-personal .tt-bt { color: #0071e3; }
 
     /* ── 조종례 ── */
     .grade-tab-bar { display: flex; padding: 10px 16px 0; gap: 8px; background: white; border-bottom: 1px solid #f0f0f0; position: sticky; top: 52px; z-index: 9; }
@@ -1778,7 +1778,7 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
     if (ev.type === 'class') {
       const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
       titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + ev.title + gradeStr;
-      if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#64748b;">${ev.short_label}</span>`;
+      if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${ev.short_label}</span>`;
       else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
       else if (ev.isSup)                       sub = '<span class="tg-blk-tag" style="color:#6a1b9a;">임장</span>';
