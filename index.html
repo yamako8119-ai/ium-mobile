@@ -1506,7 +1506,7 @@ async function loadCalendar() {
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
       .eq('target_date', dateStr).order('period_num'),
-    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title,is_separate')
+    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title,is_separate,alt_day')
       .eq('school_id', schoolId).eq('target_date', dateStr).gt('period_num', 0)
       .order('display_order'),
     sb.from('personal_tasks').select('*')
@@ -1521,6 +1521,12 @@ async function loadCalendar() {
   const tasks       = taskRes.data || [];
   const memos = tasks.filter(t => t.task_type === 'memo' && t.date === dateStr);
   const todos = tasks.filter(t => t.task_type === 'todo');
+
+  // 별도 시간표 alt_day 필터링용: 이 날짜의 "유효 요일" 계산
+  const _calDayNames = ['sun','mon','tue','wed','thu','fri','sat'];
+  const _calNaturalDay = _calDayNames[new Date(dateStr).getDay()];
+  const _calAltEntry = schedules.find(s => s.alt_day && s.alt_day !== 'none');
+  const _calExpectedDay = _calAltEntry ? _calAltEntry.alt_day : _calNaturalDay;
 
   // 학년별 교시 시간 맵: grade → { period_num → {start, end} }
   // 학년마다 일과 시간이 다를 수 있으므로(고사·행사 등) 인스턴스 학년 기준으로 조회
@@ -1573,6 +1579,9 @@ async function loadCalendar() {
       if (t.status === 'normal' && vacatedPeriods.has(t.period_num)) return;
       // 별도 시간표: 기타일정 슬롯이거나 일과에 없는 교시면 표시 안 함 (PC INNER JOIN 로직과 동일)
       if (t.is_personal) {
+        // alt_day가 설정된 날은 인스턴스의 day_of_week가 유효 요일과 일치해야 함
+        // (불일치 = alt_day 변경 전 구버전 인스턴스 → 숨김)
+        if (t.day_of_week != null && t.day_of_week !== _calExpectedDay) return;
         const _validSched = schedules.some(s =>
           parseInt(s.period_num) === parseInt(t.period_num) &&
           (!s.event_title || s.event_title.trim() === '')
@@ -2536,8 +2545,15 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
     _gpm[String(s.target_grade)] = parseInt(s.period_num);
   });
   const _hasGS = Object.keys(_gpm).length > 0;
+  // 별도 시간표 alt_day 필터링용: 이 날짜의 "유효 요일" 계산
+  const _ttDayNames = ['sun','mon','tue','wed','thu','fri','sat'];
+  const _ttNaturalDay = _ttDayNames[new Date(dateStr).getDay()];
+  const _ttAltEntry = dayScheds.find(s => s.alt_day && s.alt_day !== 'none');
+  const _ttExpectedDay = _ttAltEntry ? _ttAltEntry.alt_day : _ttNaturalDay;
   let raw = allInst.filter(i => {
     if (i.target_date !== dateStr) return false;
+    // 별도 시간표: alt_day 변경 전 구버전 인스턴스(day_of_week 불일치) 제거
+    if (i.is_personal && i.day_of_week != null && i.day_of_week !== _ttExpectedDay) return false;
     const g = String(i.grade);
     if (!_hasGS) return parseInt(i.period_num) === actualPeriod;
     if (_gpm[g] !== undefined) return parseInt(i.period_num) === _gpm[g];
