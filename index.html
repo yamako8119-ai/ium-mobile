@@ -107,7 +107,7 @@
     .type-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
     .badge-event { background: #e8f0fe; color: #1a73e8; }
     .badge-deadline { background: #fce8e6; color: #c62828; }
-    .badge-absence { background: #fff3e0; color: #e65100; }
+    .badge-personal { background: #f0fdf4; color: #166534; }
     .badge-routine { background: #e6f4ea; color: #2e7d32; }
     .badge-class { background: #f3e8fd; color: #6a1b9a; }
     .empty-state { text-align: center; padding: 56px 24px; color: #ccc; }
@@ -136,7 +136,7 @@
     .tg-sup     { background: #f3e8ff; border-left: 3px solid #a855f7; }
     .tg-event   { background: #e8f0fe; border-left: 3px solid #1a73e8; }
     .tg-routine { background: #e8f0fe; border-left: 3px solid #1a73e8; }
-    .tg-absence { background: #fff3e0; border-left: 3px solid #e65100; }
+    .tg-personal { background: #f0fdf4; border-left: 3px solid #22c55e; color: #166534; }
     .tg-deadline{ background: #fce8e6; border-left: 3px solid #c62828; }
     .tg-gita    { background: #f0fdf4; border-left: 3px solid #22c55e; color: #166534; }
     .tg-blk-title { font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1501,7 +1501,7 @@ async function loadCalendar() {
       .eq('school_id', schoolId).eq('event_date', dateStr).order('order_idx'),
     sb.from('my_calendar').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
-      .eq('date', dateStr).in('type', ['event','routine','absence','deadline'])
+      .eq('date', dateStr).in('type', ['event','routine','personal','deadline'])
       .order('start_time', { nullsFirst: true }),
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
@@ -1713,7 +1713,7 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
 
   // 종일 개인 일정
   if (allDayEvs.length > 0) {
-    const colorMap = { event:'#1a73e8', routine:'#1a73e8', absence:'#e65100', deadline:'#c62828' };
+    const colorMap = { event:'#1a73e8', routine:'#1a73e8', personal:'#22c55e', deadline:'#c62828' };
     html += '<div class="tg-allday">';
     allDayEvs.forEach(e => {
       const c = colorMap[e.type] || '#555';
