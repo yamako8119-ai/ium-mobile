@@ -608,7 +608,7 @@ const state = {
   periods:  new Date(),
   morning:  new Date(),
   academic: new Date(),
-  timetableWeek: 0,
+  timetableWeek: (new Date().getDay() === 0 || new Date().getDay() === 6) ? 1 : 0,
   morningGrade: localStorage.getItem('morningGrade') || '1학년',
 };
 const ttClass = {
@@ -1409,7 +1409,7 @@ function showApp(user) {
   });
 
   ['calendar', 'periods', 'morning'].forEach(tab => {
-    state[tab] = skipToWeekday(state[tab], state[tab].getDay() === 6 ? -1 : 1);
+    state[tab] = skipToWeekday(state[tab], 1);
   });
   loadTab('calendar');
 }
@@ -1458,12 +1458,11 @@ function moveDay(tab, delta) {
   loadTab(tab);
 }
 function goToday(tab) {
-  if (tab === 'timetable') { state.timetableWeek = 0; loadTimetable(); return; }
+  if (tab === 'timetable') { const _td = new Date().getDay(); state.timetableWeek = (_td === 0 || _td === 6) ? 1 : 0; loadTimetable(); return; }
   if (tab === 'academic')  { state.academic = new Date(); loadAcademic(); return; }
   state[tab] = new Date();
   if (['calendar', 'periods', 'morning'].includes(tab)) {
-    const day = state[tab].getDay();
-    state[tab] = skipToWeekday(state[tab], day === 6 ? -1 : 1);
+    state[tab] = skipToWeekday(state[tab], 1);
   }
   loadTab(tab);
 }
