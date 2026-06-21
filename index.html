@@ -698,7 +698,13 @@ async function studentLogin() {
   if (!selectedSchool) { err.textContent = '학교를 선택해주세요.'; return; }
 
   const btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.textContent = '접속 중...';
+  btn.disabled = true; btn.textContent = '확인 중...';
+
+  const { data: mobileOk } = await sb.rpc('check_mobile_enabled', { p_school_id: selectedSchool.id });
+  if (!mobileOk) {
+    err.textContent = '모바일 버전이 활성화되지 않은 학교입니다. 관리자에게 문의하세요.';
+    btn.disabled = false; btn.textContent = '학교 접속'; return;
+  }
 
   studentSchool = selectedSchool;
   localStorage.setItem('eeum_student_school', JSON.stringify(studentSchool));
@@ -1336,8 +1342,15 @@ async function login() {
   if (!pw)             { err.textContent = '비밀번호를 입력해주세요.'; return; }
 
   const school = selectedSchool;
-  btn.disabled = true; btn.textContent = '로그인 중...';
+  btn.disabled = true; btn.textContent = '확인 중...';
 
+  const { data: mobileOk } = await sb.rpc('check_mobile_enabled', { p_school_id: school.id });
+  if (!mobileOk) {
+    err.textContent = '모바일 버전이 활성화되지 않은 학교입니다. 관리자에게 문의하세요.';
+    btn.disabled = false; btn.textContent = '로그인'; return;
+  }
+
+  btn.textContent = '로그인 중...';
   const { data: lookup, error: le } = await sb
     .from('teacher_lookup').select('username').eq('school_id', school.id).eq('display_name', name).maybeSingle();
 
