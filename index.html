@@ -170,6 +170,22 @@
     .tg-cl-text.done { text-decoration: line-through; color: #94a3b8; }
     .tg-cl-empty  { padding: 14px; text-align: center; color: #94a3b8; font-size: 13px; }
 
+    /* ── 제출 마감 패널 ── */
+    #cal-deadline-panel { background: white; border-bottom: 1px solid #f1f5f9; flex-shrink: 0; }
+    .cdp-header { display: flex; align-items: center; gap: 8px; padding: 9px 16px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+    .cdp-header-title { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: #c62828; flex: 1; }
+    .cdp-header-title .material-symbols-outlined { font-size: 15px; }
+    .cdp-count { background: #fee2e2; color: #c62828; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 1px 7px; }
+    .cdp-chevron { font-size: 18px; color: #94a3b8; transition: transform .2s; }
+    .cdp-body { padding: 0 12px 8px; max-height: 180px; overflow-y: auto; }
+    .cdp-item { display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-bottom: 1px solid #f8fafc; }
+    .cdp-item:last-child { border-bottom: none; }
+    .cdp-dday { font-size: 11px; font-weight: 700; background: #fee2e2; color: #991b1b; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; white-space: nowrap; }
+    .cdp-dday.cdp-dday-today { background: #dcfce7; color: #166534; }
+    .cdp-dday.cdp-dday-past  { background: #f1f5f9; color: #94a3b8; }
+    .cdp-item-title { flex: 1; font-size: 13px; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cdp-empty { padding: 10px 4px; text-align: center; color: #94a3b8; font-size: 13px; }
+
     /* ── 캘린더 체크리스트 좌측 사이드바 ── */
     #tab-calendar.active { display: flex; flex-direction: column; overflow: hidden; }
     .cal-body  { flex: 1; position: relative; overflow: hidden; }
@@ -447,6 +463,19 @@
         <span class="date-label" id="calendar-date-label"></span>
         <button class="today-btn" onclick="goToday('calendar')">오늘</button>
         <button class="nav-btn" onclick="moveDay('calendar', 1)"><span class="material-symbols-outlined">chevron_right</span></button>
+      </div>
+
+      <!-- 제출 마감 패널 -->
+      <div id="cal-deadline-panel">
+        <div class="cdp-header" onclick="_cdpToggle()">
+          <div class="cdp-header-title">
+            <span class="material-symbols-outlined">assignment_late</span>
+            제출 마감
+          </div>
+          <span id="cdp-count" class="cdp-count" style="display:none;"></span>
+          <span class="material-symbols-outlined cdp-chevron" id="cdp-chevron">expand_more</span>
+        </div>
+        <div id="cdp-body" class="cdp-body" style="display:none;"></div>
       </div>
 
       <div class="cal-body">
@@ -1415,6 +1444,7 @@ function showApp(user) {
     loadTtClasses();
   }
   loadTtTeacherList();
+  _loadDeadlinePanel();
 
   const savedGrade = state.morningGrade;
   document.querySelectorAll('.grade-tab').forEach(t => {
@@ -2738,6 +2768,59 @@ async function loadMorning() {
 }
 
 // ── 캘린더 체크리스트 오버레이 ──
+// ── 제출 마감 패널 ──
+let _cdpOpen = localStorage.getItem('mobile_cdp_open') !== 'false';
+
+function _cdpToggle() {
+  _cdpOpen = !_cdpOpen;
+  localStorage.setItem('mobile_cdp_open', String(_cdpOpen));
+  document.getElementById('cdp-body').style.display = _cdpOpen ? 'block' : 'none';
+  document.getElementById('cdp-chevron').style.transform = _cdpOpen ? 'rotate(180deg)' : '';
+}
+
+async function _loadDeadlinePanel() {
+  if (!me) return;
+  const schoolId  = me.user_metadata.school_id;
+  const teacherId = String(me.user_metadata.teacher_id);
+  const dFrom  = fmt(addDays(new Date(), -30));
+  const dUntil = fmt(addDays(new Date(),  14));
+
+  const { data } = await sb.from('my_calendar').select('internal_id, title, date')
+    .eq('school_id', schoolId).eq('teacher_id', teacherId).eq('type', 'deadline')
+    .gte('date', dFrom).lte('date', dUntil).order('date', { ascending: true });
+
+  const items = data || [];
+  const countEl   = document.getElementById('cdp-count');
+  const bodyEl    = document.getElementById('cdp-body');
+  const chevronEl = document.getElementById('cdp-chevron');
+
+  countEl.textContent = items.length;
+  countEl.style.display = items.length > 0 ? 'inline-block' : 'none';
+
+  if (items.length === 0) {
+    bodyEl.innerHTML = '<div class="cdp-empty">마감 업무가 없습니다.</div>';
+  } else {
+    const todayStr = fmt(new Date());
+    bodyEl.innerHTML = items.map(item => {
+      const diff = Math.round((new Date(item.date) - new Date(todayStr)) / 86400000);
+      const dLabel = diff === 0 ? 'D-Day' : diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
+      const dClass = diff === 0 ? 'cdp-dday-today' : diff < 0 ? 'cdp-dday-past' : '';
+      return `<div class="cdp-item">
+        <span class="cdp-dday ${dClass}">${dLabel}</span>
+        <span class="cdp-item-title">${item.title}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // 처음 열 때: 항목 있으면 펼침, 없으면 접음
+  if (bodyEl.dataset.initialized !== '1') {
+    bodyEl.dataset.initialized = '1';
+    _cdpOpen = items.length > 0 ? _cdpOpen : false;
+  }
+  bodyEl.style.display = _cdpOpen ? 'block' : 'none';
+  chevronEl.style.transform = _cdpOpen ? 'rotate(180deg)' : '';
+}
+
 let _calClOpen = false;
 
 function _calClToggle() {
