@@ -2037,7 +2037,6 @@ async function loadPeriods() {
           .filter(s => s.target_grade === grade)
           .sort((a, b) => a.display_order - b.display_order);
         let t = '<div class="period-card">';
-        let pc = 0;
         rows.forEach((r, i) => {
           const isEv    = r.event_title && r.event_title.trim() !== '' && !r.is_separate;
           const isSepEv = r.event_title && r.event_title.trim() !== '' && r.is_separate;
@@ -2055,9 +2054,8 @@ async function loadPeriods() {
               <div class="p-event"></div>
             </div>`;
           } else {
-            pc++;
             t += `<div class="period-row">
-              <div class="p-num">${pc}교시</div>
+              <div class="p-num">${r.display_order}교시</div>
               <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
               <div class="p-event"></div>
             </div>`;
@@ -2129,7 +2127,6 @@ async function loadPeriods() {
   }
 
   let html = '<div class="period-card">';
-  let periodCount = 0;
   displayRows.forEach((r, i) => {
     const isEv    = r.event_title && r.event_title.trim() !== '' && !r.is_separate;
     const isSepEv = r.event_title && r.event_title.trim() !== '' && r.is_separate;
@@ -2147,9 +2144,8 @@ async function loadPeriods() {
         <div class="p-event"></div>
       </div>`;
     } else {
-      periodCount++;
       html += `<div class="period-row">
-        <div class="p-num">${periodCount}교시</div>
+        <div class="p-num">${r.display_order}교시</div>
         <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
         <div class="p-event"></div>
       </div>`;
