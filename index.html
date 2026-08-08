@@ -1538,7 +1538,7 @@ async function loadCalendar() {
   const schoolId = me.user_metadata.school_id;
   const teacherId = me.user_metadata.teacher_id;
 
-  const [acRes, calRes, ttRes, schRes, taskRes] = await Promise.all([
+  const [acRes, calRes, ttRes, schRes, taskRes, roomRes] = await Promise.all([
     sb.from('academic_calendar').select('*')
       .eq('school_id', schoolId).eq('event_date', dateStr).order('order_idx'),
     sb.from('my_calendar').select('*')
@@ -1554,6 +1554,10 @@ async function loadCalendar() {
     sb.from('personal_tasks').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
       .order('sort_order', { nullsFirst: true }),
+    // 🏫 [공용교실 예약] 원본이 아니라 서버가 이미 계산해둔 결과(날짜·교사·교시·교실명·시각)만
+    // 받는다 — 학년별 시각 매칭 같은 어려운 판정은 서버(routes/timetable.js)에서 끝내고 온다.
+    sb.from('classroom_reservations').select('period_num,classroom_name,start_time,end_time')
+      .eq('school_id', schoolId).eq('teacher_id', String(teacherId)).eq('target_date', dateStr),
   ]);
 
   const academics   = acRes.data   || [];
@@ -1561,6 +1565,7 @@ async function loadCalendar() {
   const timetable   = ttRes.data   || [];
   const schedules   = schRes.data  || [];
   const tasks       = taskRes.data || [];
+  const roomReservations = roomRes.data || [];
   const memos = tasks.filter(t => t.task_type === 'memo' && t.date === dateStr);
   const todos = tasks.filter(t => t.task_type === 'todo');
 
@@ -1706,6 +1711,25 @@ async function loadCalendar() {
         endMins: eh * 60 + em,
       });
     });
+
+    // 🏫 [공용교실 예약 매칭] 서버(resolveClassroomReservationsForSync)가 이미 계산해둔 결과를
+    // 그대로 매칭만 한다 — desktop TDP/WeeklyPopup과 같은 우선순위: 케이스1(정규 수업/임장 블록에
+    // 얹기, period_num으로 매칭) → 초록(기타일정) 블록 병합(시작시각으로 매칭) → 케이스2(독립 블록).
+    roomReservations.forEach(r => {
+      const classMatch = events.find(ev => ev.type === 'class' && parseInt(ev.period_num) === parseInt(r.period_num));
+      if (classMatch) { classMatch._reservedRoom = r.classroom_name; return; }
+      const gitaMatch = events.find(ev => ev.type === 'gita' && ev.start === (r.start_time || '').slice(0, 5));
+      if (gitaMatch) { gitaMatch._reservedRoom = r.classroom_name; return; }
+      if (!r.start_time || !r.end_time) return;
+      const [sh, sm] = r.start_time.split(':').map(Number);
+      const [eh, em] = r.end_time.split(':').map(Number);
+      events.push({
+        type: 'class', isSup: false, isFixed: false, is_personal: false,
+        title: r.classroom_name, roomOnly: true,
+        start: r.start_time.slice(0, 5), end: r.end_time.slice(0, 5),
+        startMins: sh * 60 + sm, endMins: eh * 60 + em,
+      });
+    });
   }
 
   const allDayEvs = [];
@@ -1826,13 +1850,22 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
 
     let titleStr = ev.title;
     let sub = '';
-    if (ev.type === 'class') {
+    // 🏫 [공용교실 예약 배지] check_circle 아이콘 — messenger.html/WeeklyPopup.html과 동일한
+    // 글리프·크기(1em)로 맞춘다. roomOnly(케이스2)는 아이콘+교실명 자체가 제목이고,
+    // 그 외 타입에 _reservedRoom이 붙었으면(케이스1/초록 병합) 기존 제목 뒤에 배지로 덧붙인다.
+    const roomBadge = name => `<span style="font-size:0.85em;opacity:0.75;font-weight:500;"><span class="material-symbols-outlined" style="font-size:1em;vertical-align:middle;">check_circle</span>${name}</span>`;
+    if (ev.roomOnly) {
+      titleStr = roomBadge(ev.title);
+    } else if (ev.type === 'class') {
       const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
       titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + ev.title + gradeStr;
+      if (ev._reservedRoom) titleStr += ' ' + roomBadge(ev._reservedRoom);
       if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${ev.short_label}</span>`;
       else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
       else if (ev.isSup)                       sub = '<span class="tg-blk-tag" style="color:#6a1b9a;">임장</span>';
+    } else if (ev.type === 'gita' && ev._reservedRoom) {
+      titleStr = ev.title + ' ' + roomBadge(ev._reservedRoom);
     }
     block.innerHTML =
       `<div class="tg-blk-title" style="font-size:${bH<24?'12px':'13px'};">${titleStr}${sub}</div>` +
