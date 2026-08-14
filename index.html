@@ -1258,9 +1258,12 @@ function buildStudentCell(dateStr, rowOrder, allInst, allScheds, vacSigs, showTe
   if (display.length === 0) return `<td class="tt-mc"></td>`;
 
   // 우선순위: reinforcement > changed > normal
+  // 🩺 [정/부 감독] 같은 학급에 임장 인스턴스가 2개 이상(정+부)이면 internal_id가 가장 작은
+  // (=정, PC 서버 routes/supervision.js의 배포 라우트가 정을 항상 부보다 낮은 id로 저장한다)
+  // 것을 고른다 — 원본 데이터 순서에 기대지 않는다.
   const pick = display.find(i => i.status === 'reinforcement') ||
                display.find(i => i.status === 'changed') ||
-               display[0];
+               [...display].sort((a, b) => (a.internal_id || 0) - (b.internal_id || 0))[0];
 
   const subName = pick.subject_name.replace(/^(supervision_|fixed_)/, '').slice(0, showTeacher ? 5 : 6);
   const cellCls = pick.status === 'reinforcement' ? 'st-cell-reinf'
@@ -1692,7 +1695,8 @@ async function loadCalendar() {
         display_order: displayOrderNum,
         grade: t.grade, class_num: t.class_num, fixedCount: cnt,
         start: times.start.slice(0,5), end: times.end.slice(0,5),
-        startMins: sH*60+sM, endMins: eH*60+eM
+        startMins: sH*60+sM, endMins: eH*60+eM,
+        supervisionRole: t.supervision_role || ''  // 🩺 [정/부 감독] "(정)"/"(부)" — 없으면 빈 문자열
       });
     });
     // 기타일정(임장X) 블록 — daily_schedules의 event_title 행
@@ -1863,7 +1867,7 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
       if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${ev.short_label}</span>`;
       else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
-      else if (ev.isSup)                       sub = '<span class="tg-blk-tag" style="color:#6a1b9a;">임장</span>';
+      else if (ev.isSup)                       sub = `<span class="tg-blk-tag" style="color:#6a1b9a;">임장${ev.supervisionRole || ''}</span>`;
     } else if (ev.type === 'gita' && ev._reservedRoom) {
       titleStr = ev.title + ' ' + roomBadge(ev._reservedRoom);
     }
@@ -2701,7 +2705,10 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   }
 
   // 표시 우선순위: supervision > 기타
-  const supItems = display.filter(i => i.subject_name.startsWith('supervision_'));
+  // 🩺 [정/부 감독] 같은 학급에 임장 인스턴스가 2개 이상(정+부)이면 internal_id가 가장 작은
+  // (=정) 것을 대표로 쓴다 — 원본 데이터 순서에 기대지 않는다.
+  const supItems = display.filter(i => i.subject_name.startsWith('supervision_'))
+    .sort((a, b) => (a.internal_id || 0) - (b.internal_id || 0));
   const regItems = display.filter(i => !i.subject_name.startsWith('supervision_'));
 
   // fixed_ 합동수업 중복 제거 후 실질 충돌 판단
