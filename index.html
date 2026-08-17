@@ -268,6 +268,7 @@
     .tt-today-first { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8, inset 0 2.5px 0 0 #1a73e8 !important; }
     .tt-today-mid   { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8 !important; }
     .tt-today-last  { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8, inset 0 -2.5px 0 0 #1a73e8 !important; }
+    .tt-today-full  { box-shadow: inset 2.5px 0 0 0 #1a73e8, inset -2.5px 0 0 0 #1a73e8, inset 0 2.5px 0 0 #1a73e8, inset 0 -2.5px 0 0 #1a73e8 !important; }
     .tt-table td { border: 1px solid #e2e8f0; text-align: center; padding: 0; vertical-align: middle; height: 46px; font-size: 11px; }
     .tt-table td.period-col { color: #64748b; font-weight: 700; background: #f9fafb; font-size: 11px; width: 26px; padding: 0 4px; }
     .tt-mc  { position: relative; width: 100%; height: 100%; }
@@ -1176,7 +1177,10 @@ async function loadStudentTimetable() {
       const dStr = fmt(d);
       const todayCls = dStr === todayStr && row <= todayMax
         ? (row === 1 ? 'tt-today-first' : row === todayMax ? 'tt-today-last' : 'tt-today-mid') : '';
-      if (spanCells[dStr]) { if (row === 1) html += injectTodayClass(spanCells[dStr], todayCls); if (!holidayRows[dStr] || row <= holidayRows[dStr]) return; }
+      if (spanCells[dStr]) {
+        if (row === 1) html += injectTodayClass(spanCells[dStr], spanTodayCls(dStr, todayStr, holidayRows[dStr] || effMax, todayMax));
+        if (!holidayRows[dStr] || row <= holidayRows[dStr]) return;
+      }
       html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, vacSigs), todayCls);
     });
     html += `</tr>`;
@@ -1188,6 +1192,13 @@ async function loadStudentTimetable() {
 function injectTodayClass(tdHtml, cls) {
   if (!cls) return tdHtml;
   return tdHtml.replace(/ class="/, ` class="${cls} `);
+}
+
+// rowspan 병합 셀(전일제/휴업일)의 오늘 테두리 클래스: 병합 범위가 오늘 테두리 끝까지 덮으면
+// 위+아래 테두리를 한 번에(tt-today-full), 아니면 위쪽만(tt-today-first, 아래쪽은 이어지는 행에서 처리)
+function spanTodayCls(dStr, todayStr, spanRows, todayMax) {
+  if (dStr !== todayStr || todayMax <= 0) return '';
+  return spanRows >= todayMax ? 'tt-today-full' : 'tt-today-first';
 }
 
 function buildHolidayCell(rows, name) {
@@ -2454,7 +2465,10 @@ async function loadClassTtForTeacher() {
       const dStr = fmt(d);
       const todayCls = dStr === todayStr && row <= todayMax
         ? (row === 1 ? 'tt-today-first' : row === todayMax ? 'tt-today-last' : 'tt-today-mid') : '';
-      if (spanCells[dStr]) { if (row === 1) html += injectTodayClass(spanCells[dStr], todayCls); if (!holidayRows[dStr] || row <= holidayRows[dStr]) return; }
+      if (spanCells[dStr]) {
+        if (row === 1) html += injectTodayClass(spanCells[dStr], spanTodayCls(dStr, todayStr, holidayRows[dStr] || effMax, todayMax));
+        if (!holidayRows[dStr] || row <= holidayRows[dStr]) return;
+      }
       html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, vacSigs, true), todayCls);
     });
     html += `</tr>`;
@@ -2571,7 +2585,7 @@ async function loadTimetable() {
       const todayCls = dStr === todayStr && row <= todayMax2
         ? (row === 1 ? 'tt-today-first' : row === todayMax2 ? 'tt-today-last' : 'tt-today-mid') : '';
       if (spanCells[dStr]) {
-        if (row === 1) html += injectTodayClass(spanCells[dStr], todayCls);
+        if (row === 1) html += injectTodayClass(spanCells[dStr], spanTodayCls(dStr, todayStr, holidayRows[dStr] || effMax, todayMax2));
         if (!holidayRows[dStr] || row <= holidayRows[dStr]) return;
       }
       html += injectTodayClass(buildMobileCell(dStr, row, allInst, allScheds, hiddenIds, teacherId), todayCls);
