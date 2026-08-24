@@ -1420,11 +1420,17 @@ async function logout() {
   clearCredentials();
   me = null;
   selectedSchool = null;
+  ttTeacherList = [];
+  ttTargetTeacherId = null;
+  ttClass.classes = [];
   document.getElementById('school-input').value = '';
   document.getElementById('school-input').classList.remove('has-value');
   document.getElementById('region-group').style.display = 'none';
   document.getElementById('login-name').value = '';
   document.getElementById('login-pw').value = '';
+  document.getElementById('tt-teacher-input').value = '';
+  document.getElementById('tt-teacher-clear').style.display = 'none';
+  hideTtDropdown();
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('tt-classroom-fab').style.display = 'none';
   document.getElementById('tt-view-fab').style.display = 'none';
