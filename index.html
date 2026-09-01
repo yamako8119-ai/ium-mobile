@@ -2689,9 +2689,14 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   // 행사 슬롯: supervision만 남기고 나머지 제거
   if (isEventSlot) raw = raw.filter(i => i.subject_name.startsWith('supervision_'));
 
-  // fixed_ 결강 처리: vacated fixed_와 같은 이름의 normal은 숨김
+  // fixed_ 결강 처리: vacated/absent fixed_와 같은 이름의 normal은 숨김
+  // 🚨 [버그 수정] 예전엔 'vacated'만 봤다 — 고정수업은 학급 수만큼 행이 있는데(예: 1-1~1-7 = 7행)
+  // 결강은 그중 대표 한 행만 'absent'가 되므로, absent를 안 보면 나머지 6행이 그대로 남아서
+  // 결강한 교사에게 수업이 계속 보였다. PC 서버(routes/timetable.js의 캘린더 병합 쿼리)에도
+  // 똑같은 누락이 있어 함께 고쳤다 — 한쪽만 고치면 PC와 모바일이 서로 다른 걸 보여준다.
   const vacFixedSubs = new Set(
-    raw.filter(i => i.status === 'vacated' && i.subject_name.startsWith('fixed_')).map(i => i.subject_name)
+    raw.filter(i => (i.status === 'vacated' || i.status === 'absent') && i.subject_name.startsWith('fixed_'))
+       .map(i => i.subject_name)
   );
   const isFixedAbsent = sub => sub.startsWith('fixed_') && vacFixedSubs.has(sub);
 
