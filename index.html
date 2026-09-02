@@ -932,7 +932,7 @@ async function loadStAcademic() {
       const inCurMonth = day.getMonth() === month;
       const isT = dStr === todayStr;
       const dayEvents = (inCurMonth && eventMap[dStr]) ? eventMap[dStr] : [];
-      const hasHoliday = dayEvents.some(ev => isRedColor(ev.color));
+      const hasHoliday = dayEvents.some(ev => isHolidayColor(ev.color));
       const dayNumStyle = (!isT && hasHoliday) ? ' style="color:#e74c3c;"' : '';
       html += `<td class="${inCurMonth ? '' : 'outside'}">
         <span class="day-num${isT ? ' today-circle' : ''}"${dayNumStyle}>${day.getDate()}</span>`;
@@ -1120,7 +1120,7 @@ async function loadStudentTimetable() {
 
   const holidayMap = {};
   (acRes.data || []).forEach(e => {
-    if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
+    if (isHolidayColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
   });
 
   // 가려진 normal(이사 간 수업의 원본 행) 억제용 — PC와 동일한 2단 판정
@@ -1662,7 +1662,7 @@ async function loadCalendar() {
     gradeSchedsMap[g].push(s);
   });
 
-  const isHoliday = academics.some(ac => CalendarCommon.isHolidayColor(ac.color));
+  const isHoliday = academics.some(ac => isHolidayColor(ac.color));
 
   const events = [];
   // 초록 기타일정 블록은 수업과 자리를 나눠 쓰는 게 아니라 뒤에 전체 폭으로 깔리므로
@@ -2026,16 +2026,12 @@ function _calUpdateNowLine() {
 }
 
 // ════════════════ 2. 학사일정 ════════════════
-function isRedColor(hex) {
-  const c = (hex || '').trim().toLowerCase();
-  if (c === 'red') return true;
-  const m = c.match(/^#([0-9a-f]{6})$/i);
-  if (!m) return false;
-  const r = parseInt(m[1].substr(0,2), 16);
-  const g = parseInt(m[1].substr(2,2), 16);
-  const b = parseInt(m[1].substr(4,2), 16);
-  return r > 160 && r > g * 1.8 && r > b * 1.8;
-}
+// 🔗 [공용 판정기] 휴일 판정은 PC 3화면과 같은 규칙을 쓴다(js/calendar-common.js).
+// 예전엔 여기만 "붉은 계열이면 전부 휴일"(RGB 비율)로 넓게 잡고 있었다. 관리자가
+// 학사일정 범주를 추가하며 아무 색이나 고를 수 있어서(admin.html의 색상 피커),
+// 예컨대 "체육대회"를 붉은색으로 만들면 모바일 시간표에서만 그날 수업이 통째로
+// 사라지고 PC·모바일 내 일정에는 그대로 남는 어긋남이 생겼다.
+function isHolidayColor(hex) { return CalendarCommon.isHolidayColor(hex); }
 
 async function loadAcademic() {
   const d = state.academic;
@@ -2091,7 +2087,7 @@ async function loadAcademic() {
       const inCurMonth = day.getMonth() === month;
       const isT = dStr === todayStr;
       const dayEvents = (inCurMonth && eventMap[dStr]) ? eventMap[dStr] : [];
-      const hasHoliday = dayEvents.some(ev => isRedColor(ev.color));
+      const hasHoliday = dayEvents.some(ev => isHolidayColor(ev.color));
       const dayNumStyle = (!isT && hasHoliday) ? ' style="color:#e74c3c;"' : '';
       html += `<td class="${inCurMonth ? '' : 'outside'}">
         <span class="day-num${isT ? ' today-circle' : ''}"${dayNumStyle}>${day.getDate()}</span>`;
@@ -2502,7 +2498,7 @@ async function loadClassTtForTeacher() {
 
   const holidayMap = {};
   (acRes.data || []).forEach(e => {
-    if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
+    if (isHolidayColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
   });
 
   const hiddenIds = buildHiddenIds(allInst);
@@ -2606,7 +2602,7 @@ async function loadTimetable() {
 
   const holidayMap = {};
   (acRes.data || []).forEach(e => {
-    if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
+    if (isHolidayColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
   });
 
   // 🚨 [가려진 normal] 예전엔 origin_instance_id를 아예 안 보고 서명만 썼고, 그 서명도
