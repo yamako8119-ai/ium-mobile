@@ -613,6 +613,7 @@
      🚨 상대 경로여야 한다: GitHub Pages는 하위 경로(/ium-mobile/)로 서빙될 수 있어
      절대 경로(/js/...)로 쓰면 404가 난다. PC 서버(/mobile.html)에서도 상대 경로가 맞다. -->
 <script src="js/timetable-cell.js"></script>
+<script src="js/calendar-common.js"></script>
 <script>
 const SUPABASE_URL  = 'https://qhfqxrvxjrmnkskklfmm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZnF4cnZ4anJtbmtza2tsZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mjg3NjksImV4cCI6MjA5NjQwNDc2OX0.kuqxcDaWTxzZGXReIk3AtKLwip_cvDYTbi_uAmRHFHw';
@@ -1482,13 +1483,16 @@ function showApp(user) {
   document.getElementById('header-school').textContent = user.user_metadata.school_name || '';
   document.getElementById('header-name').textContent = user.user_metadata.name + ' 선생님';
 
-  // 학교명 + 교과교실제 여부
-  sb.from('schools').select('name, classroom_type').eq('id', user.user_metadata.school_id).single()
+  // 학교명 + 교과교실제 여부 + 출퇴근 시간
+  // 🕗 select('*')를 쓰는 이유: Supabase에 work_start_time 컬럼이 아직 없는 환경에서도
+  //    컬럼명을 명시하면 조회 자체가 실패한다. 없으면 undefined로 와서 기본값(08:00~18:00)이 쓰인다.
+  sb.from('schools').select('*').eq('id', user.user_metadata.school_id).single()
     .then(({ data }) => {
       if (!data) return;
       document.getElementById('header-school').textContent = data.name;
       schoolClassroomType = data.classroom_type || 'normal';
       updateClassroomCheckboxVisibility();
+      if (applyCalRangeFromSchool(data) && currentTab === 'calendar') loadCalendar();
     });
 
   // 체크박스 초기 상태 (classroom_type은 schools 비동기 조회 후 updateClassroomCheckboxVisibility 호출)
@@ -1606,7 +1610,7 @@ async function loadCalendar() {
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
       .eq('target_date', dateStr).order('period_num'),
-    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title,is_separate,alt_day')
+    sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title,event_short_name,is_separate,alt_day')
       .eq('school_id', schoolId).eq('target_date', dateStr).gt('period_num', 0)
       .order('display_order'),
     sb.from('personal_tasks').select('*')
@@ -1658,12 +1662,12 @@ async function loadCalendar() {
     gradeSchedsMap[g].push(s);
   });
 
-  const isHoliday = academics.some(ac => {
-    const c = (ac.color || '').trim().toLowerCase();
-    return c === '#e74c3c' || c === '#ef4444' || c === 'red';
-  });
+  const isHoliday = academics.some(ac => CalendarCommon.isHolidayColor(ac.color));
 
   const events = [];
+  // 초록 기타일정 블록은 수업과 자리를 나눠 쓰는 게 아니라 뒤에 전체 폭으로 깔리므로
+  // (PC의 WeeklyPopup·오늘 일정 패널과 동일) 트랙 레이아웃에 넣지 않고 따로 모은다.
+  const otherEvents = [];
   if (!isHoliday) {
     // vacated/absent 교시 집합 — 같은 교시의 normal 인스턴스 억제
     const vacatedPeriods = new Set(
@@ -1754,20 +1758,35 @@ async function loadCalendar() {
         supervisionRole: t.supervision_role || ''  // 🩺 [정/부 감독] "(정)"/"(부)" — 없으면 빈 문자열
       });
     });
-    // 기타일정(임장X) 블록 — daily_schedules의 event_title 행
+    // 기타일정(임장X) 초록 블록 — PC의 /api/variation/schedule/other-event-periods와 같은 규칙.
+    //
+    // 🚨 [2026-09-03 수정] 예전엔 daily_schedules의 행마다 하나씩 만들었다. 그런데 이 테이블은
+    // (교시 × 대상학년)으로 행이 갈리기 때문에 두 가지가 어긋났다.
+    //   1) 학년별 행이 3개면 같은 시간대에 초록 블록이 3개 겹쳐 그려졌다.
+    //   2) 1학년만 행사인 교시가 학년과 무관하게 모든 교사에게 초록 블록으로 보였다.
+    // 서버는 display_order 단위로 묶어서 "그 교시의 모든 학년 행이 기타일정이고 별도시간표가
+    // 아닐 때"만 내려준다(SQL의 GROUP BY + HAVING). 즉 전교생이 행사인 교시만 초록이 된다.
+    // 여기도 같은 판정을 한다.
+    const _byOrder = {};
     schedules.forEach(s => {
-      if (!s.event_title || s.event_title.trim() === '') return;
-      if (s.is_separate) return;
-      if (!s.start_time || !s.end_time) return;
-      const [sh, sm] = s.start_time.split(':').map(Number);
-      const [eh, em] = s.end_time.split(':').map(Number);
-      events.push({
-        type: 'gita',
-        title: s.event_title,
-        start: s.start_time.slice(0, 5),
-        end: s.end_time.slice(0, 5),
-        startMins: sh * 60 + sm,
-        endMins: eh * 60 + em,
+      const k = String(s.display_order);
+      (_byOrder[k] = _byOrder[k] || []).push(s);
+    });
+    Object.values(_byOrder).forEach(rows => {
+      const allEvent = rows.every(s => (s.event_title || '').trim() !== '' && !s.is_separate);
+      if (!allEvent) return;
+      const base = rows[0];
+      if (!base.start_time || !base.end_time) return;
+      const [sh, sm] = base.start_time.split(':').map(Number);
+      const [eh, em] = base.end_time.split(':').map(Number);
+      const startMins = sh * 60 + sm, endMins = eh * 60 + em;
+      if (startMins >= endMins) return;
+      otherEvents.push({
+        // 라벨도 PC와 같은 규칙: 약어가 있으면 약어, 없으면 제목 앞 4글자
+        title: base.event_short_name || base.event_title.slice(0, 4),
+        start: base.start_time.slice(0, 5),
+        end: base.end_time.slice(0, 5),
+        startMins, endMins,
       });
     });
 
@@ -1777,7 +1796,7 @@ async function loadCalendar() {
     roomReservations.forEach(r => {
       const classMatch = events.find(ev => ev.type === 'class' && parseInt(ev.period_num) === parseInt(r.period_num));
       if (classMatch) { classMatch._reservedRoom = r.classroom_name; return; }
-      const gitaMatch = events.find(ev => ev.type === 'gita' && ev.start === (r.start_time || '').slice(0, 5));
+      const gitaMatch = otherEvents.find(ev => ev.start === (r.start_time || '').slice(0, 5));
       if (gitaMatch) { gitaMatch._reservedRoom = r.classroom_name; return; }
       if (!r.start_time || !r.end_time) return;
       const [sh, sm] = r.start_time.split(':').map(Number);
@@ -1810,15 +1829,49 @@ async function loadCalendar() {
   const _clBtn = document.getElementById('cal-cl-trigger');
   if (_clBtn) _clBtn.classList.toggle('has-todos', todos.length > 0);
 
-  renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay: fmt(new Date()) === dateStr, memos });
+  renderCalendarGrid(el, { academics, events, otherEvents, allDayEvs, isCurrentDay: fmt(new Date()) === dateStr, memos });
 }
 
-function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, memos = [] }) {
-  const PX = 1.2, SH = 8, EH = 18;
-  const calcY = mins => Math.max(0, (mins - SH*60) * PX);
-  const gridH  = (EH - SH) * 60 * PX;
+// ── 캘린더 시간 범위(분) ─────────────────────────────
+// 분 단위로 들고 있다 — 시작이 반 시(:30)일 수 있기 때문(출근시각 −30분을 30분 경계로 내림).
+// 규칙은 PC의 WeeklyPopup.calRangeFromSettings / messenger._tdpRangeFromSettings와 문자 그대로 같다.
+// 한쪽만 바꾸면 같은 날짜가 화면마다 다른 범위로 그려진다.
+let CAL_START_MINS = 8 * 60;
+let CAL_END_MINS   = 18 * 60;
+let CAL_BASE_END_MINS = 18 * 60;   // 학교 설정에서 나온 기본 하단 (일정에 따라 아래로만 늘어남)
 
-  if (academics.length === 0 && events.length === 0 && allDayEvs.length === 0 && memos.length === 0) {
+// schools 행에서 범위를 계산해 반영한다. 기본값과 달라졌을 때만 true.
+function applyCalRangeFromSchool(school) {
+  const r = CalendarCommon.rangeFromWorkHours(
+    school && school.work_start_time, school && school.work_end_time);
+  if (r.start === CAL_START_MINS && r.end === CAL_BASE_END_MINS) return false;
+  CAL_START_MINS = r.start;
+  CAL_BASE_END_MINS = CAL_END_MINS = r.end;
+  return true;
+}
+
+// 🔗 [공용 판정기] 이스케이프·휴업일·시간범위·컬럼배치는 js/calendar-common.js 하나만 고친다.
+// 얇은 함수로 감싸 호이스팅시킨다 — 스크립트 태그 순서나 선언 위치에 영향받지 않게.
+function escHtml(v) { return CalendarCommon.escapeHtml(v); }
+
+function renderCalendarGrid(el, { academics, events, otherEvents = [], allDayEvs, isCurrentDay, memos = [] }) {
+  // ── 캘린더 시간 범위 ─── 분 단위로 들고 있는다(시작이 반 시(:30)일 수 있음: 출근시각 −30분을
+  // 30분 경계로 내림). 시간 축 라벨은 정시에만, 그리드 선은 시작점부터 30분 간격.
+  // 이 날짜의 일정에 맞춰 범위를 확정한다 — 범위 밖 일정이 조용히 사라지지 않게.
+  // 하단은 시 단위 올림, 상단은 30분 경계 내림. 일정이 없으면 학교 설정값 그대로다.
+  {
+    const spans = events.concat(otherEvents).map(ev => [ev.startMins, ev.endMins]);
+    const r = CalendarCommon.expandRange({ start: CAL_START_MINS, end: CAL_BASE_END_MINS }, spans);
+    CAL_START_MINS = r.start;
+    CAL_END_MINS   = r.end;
+  }
+
+  const PX = 1.2;
+  const SM = CAL_START_MINS, EM = CAL_END_MINS;
+  const calcY = mins => Math.max(0, (mins - SM) * PX);
+  const gridH  = (EM - SM) * PX;
+
+  if (academics.length === 0 && events.length === 0 && otherEvents.length === 0 && allDayEvs.length === 0 && memos.length === 0) {
     el.innerHTML = emptyHtml('calendar_month', '오늘 일정이 없습니다.');
     return;
   }
@@ -1829,9 +1882,10 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
   if (academics.length > 0) {
     html += '<div class="tg-chips">';
     academics.forEach(ac => {
-      const bg = ac.color ? ac.color + '22' : '#f1f3f4';
-      html += `<span class="tg-chip" style="color:${ac.color||'#555'};background:${bg};">
-        <span class="tg-chip-dot" style="background:${ac.color||'#bbb'};"></span>${ac.content}</span>`;
+      const c  = escHtml(ac.color || '');
+      const bg = c ? c + '22' : '#f1f3f4';
+      html += `<span class="tg-chip" style="color:${c || '#555'};background:${bg};">
+        <span class="tg-chip-dot" style="background:${c || '#bbb'};"></span>${escHtml(ac.content)}</span>`;
     });
     html += '</div>';
   }
@@ -1843,19 +1897,18 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
     allDayEvs.forEach(e => {
       const c = colorMap[e.type] || '#555';
       html += `<div class="tg-allday-row" style="border-left:3px solid ${c};">
-        <span style="flex:1;">${e.title}</span><span style="font-size:11px;color:#aaa;">종일</span></div>`;
+        <span style="flex:1;">${escHtml(e.title)}</span><span style="font-size:11px;color:#aaa;">종일</span></div>`;
     });
     html += '</div>';
   }
 
   // 시간 그리드
   html += `<div class="tg-wrap"><div class="tg-axis" style="height:${gridH}px;">`;
-  for (let h = SH; h <= EH; h++)
-    html += `<div class="tg-hour-lbl" style="top:${calcY(h*60)}px;">${String(h).padStart(2,'0')}</div>`;
+  for (let mm = Math.ceil(SM / 60) * 60; mm <= EM; mm += 60)
+    html += `<div class="tg-hour-lbl" style="top:${calcY(mm)}px;">${String(mm / 60).padStart(2,'0')}</div>`;
   html += `</div><div class="tg-col" id="tg-col" style="height:${gridH}px;">`;
-  for (let h = SH; h <= EH; h++) {
-    html += `<div class="tg-grid-line" style="top:${calcY(h*60)}px;"></div>`;
-    if (h < EH) html += `<div class="tg-grid-line half" style="top:${calcY(h*60+30)}px;"></div>`;
+  for (let mm = SM; mm <= EM; mm += 30) {
+    html += `<div class="tg-grid-line${(mm % 60) !== 0 ? ' half' : ''}" style="top:${calcY(mm)}px;"></div>`;
   }
   html += '</div></div>';
 
@@ -1864,34 +1917,37 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
   const col = document.getElementById('tg-col');
   if (!col) return;
 
-  // 보이는 이벤트만 필터 + 시간순 정렬
-  const visible = events.filter(ev => ev.startMins < EH*60 && ev.endMins > SH*60);
-  visible.sort((a, b) => a.startMins - b.startMins || b.endMins - a.endMins);
+  // 초록 기타일정 — 수업 블록보다 먼저 붙여 뒤쪽 레이어로 깔리게 한다(PC와 동일).
+  // 전체 폭을 쓰고 트랙 배정에도 참여하지 않는다. 예전엔 일반 이벤트로 섞여 들어가서
+  // 좁은 모바일 화면에서 수업 블록과 폭을 반씩 나눠 갖고 있었다.
+  otherEvents
+    .filter(ev => ev.startMins < EM && ev.endMins > SM)
+    .forEach(ev => {
+      const topY = calcY(Math.max(ev.startMins, SM));
+      const botY = calcY(Math.min(ev.endMins, EM));
+      const bH   = Math.max(botY - topY, 20);
+      const block = document.createElement('div');
+      block.className = 'tg-block tg-gita';
+      block.style.cssText = `top:${topY}px;height:${bH}px;width:calc(100% - 3px);left:1px;`;
+      const rr = ev._reservedRoom
+        ? ` <span style="font-size:0.85em;opacity:0.75;font-weight:500;"><span class="material-symbols-outlined" style="font-size:1em;vertical-align:middle;">check_circle</span>${escHtml(ev._reservedRoom)}</span>`
+        : '';
+      block.innerHTML =
+        `<div class="tg-blk-title" style="font-size:${bH<24?'12px':'13px'};">${escHtml(ev.title)}${rr}</div>` +
+        (bH >= 28 ? `<div class="tg-blk-sub">${ev.start}–${ev.end}</div>` : '');
+      col.appendChild(block);
+    });
 
-  // 트랙(컬럼) 배정
-  const colEnds = [];
+  // 🔗 [공용 판정기] 겹치는 일정의 컬럼 배치는 세 화면이 같은 규칙을 쓴다
+  // (js/calendar-common.js). 각 ev에 _col(컬럼)과 _cols(그 묶음의 컬럼 수)가 붙는다.
+  const visible = CalendarCommon.layoutTracks(
+    events.filter(ev => ev.startMins < EM && ev.endMins > SM));
+
   visible.forEach(ev => {
-    let c = colEnds.findIndex(end => end <= ev.startMins);
-    if (c === -1) { c = colEnds.length; colEnds.push(0); }
-    ev._c = c; colEnds[c] = ev.endMins;
-  });
-
-  // Union-Find로 겹치는 이벤트 그룹화 → 그룹 내 최대 컬럼 수 산출
-  const par = visible.map((_, i) => i);
-  const uf  = x => par[x] === x ? x : (par[x] = uf(par[x]));
-  for (let i = 0; i < visible.length; i++)
-    for (let j = i+1; j < visible.length; j++)
-      if (visible[i].startMins < visible[j].endMins && visible[j].startMins < visible[i].endMins)
-        par[uf(i)] = uf(j);
-  const gMax = {};
-  visible.forEach((ev, i) => { const g = uf(i); gMax[g] = Math.max(gMax[g]||0, ev._c); });
-  visible.forEach((ev, i) => { ev._nc = (gMax[uf(i)]||0)+1; });
-
-  visible.forEach(ev => {
-    const topY = calcY(Math.max(ev.startMins, SH*60));
-    const botY = calcY(Math.min(ev.endMins, EH*60));
+    const topY = calcY(Math.max(ev.startMins, SM));
+    const botY = calcY(Math.min(ev.endMins, EM));
     const bH   = Math.max(botY - topY, 20);
-    const cW   = 100 / (ev._nc||1);
+    const cW   = 100 / (ev._cols||1);
 
     const block = document.createElement('div');
     block.className = 'tg-block';
@@ -1905,27 +1961,26 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
       block.classList.add('tg-' + (ev.type || 'event'));
     }
     block.style.cssText =
-      `top:${topY}px;height:${bH}px;width:calc(${cW}% - 3px);left:calc(${cW*(ev._c||0)}% + 1px);`;
+      `top:${topY}px;height:${bH}px;width:calc(${cW}% - 3px);left:calc(${cW*(ev._col||0)}% + 1px);`;
 
-    let titleStr = ev.title;
+    let titleStr = escHtml(ev.title);
     let sub = '';
     // 🏫 [공용교실 예약 배지] check_circle 아이콘 — messenger.html/WeeklyPopup.html과 동일한
     // 글리프·크기(1em)로 맞춘다. roomOnly(케이스2)는 아이콘+교실명 자체가 제목이고,
     // 그 외 타입에 _reservedRoom이 붙었으면(케이스1/초록 병합) 기존 제목 뒤에 배지로 덧붙인다.
-    const roomBadge = name => `<span style="font-size:0.85em;opacity:0.75;font-weight:500;"><span class="material-symbols-outlined" style="font-size:1em;vertical-align:middle;">check_circle</span>${name}</span>`;
+    const roomBadge = name => `<span style="font-size:0.85em;opacity:0.75;font-weight:500;"><span class="material-symbols-outlined" style="font-size:1em;vertical-align:middle;">check_circle</span>${escHtml(name)}</span>`;
     if (ev.roomOnly) {
       titleStr = roomBadge(ev.title);
     } else if (ev.type === 'class') {
       const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
-      titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + ev.title + gradeStr;
+      titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + escHtml(ev.title) + gradeStr;
       if (ev._reservedRoom) titleStr += ' ' + roomBadge(ev._reservedRoom);
-      if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${ev.short_label}</span>`;
+      if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${escHtml(ev.short_label)}</span>`;
       else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
       else if (ev.isSup)                       sub = `<span class="tg-blk-tag" style="color:#6a1b9a;">임장${ev.supervisionRole || ''}</span>`;
-    } else if (ev.type === 'gita' && ev._reservedRoom) {
-      titleStr = ev.title + ' ' + roomBadge(ev._reservedRoom);
     }
+    // 초록 기타일정(type 'gita')은 더 이상 여기로 오지 않는다 — 위에서 뒤쪽 레이어로 따로 그린다.
     block.innerHTML =
       `<div class="tg-blk-title" style="font-size:${bH<24?'12px':'13px'};">${titleStr}${sub}</div>` +
       (bH >= 28 ? `<div class="tg-blk-sub">${ev.start}–${ev.end}</div>` : '');
@@ -1935,12 +1990,12 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
   // 민트 메모 점
   memos.forEach(memo => {
     const [h, m] = (memo.time || '00:00').split(':').map(Number);
-    const clampedMins = Math.max(SH*60, Math.min(h*60+m, EH*60-1));
+    const clampedMins = Math.max(SM, Math.min(h*60+m, EM-1));
     const wrap = document.createElement('div');
     wrap.className = 'tg-mint-wrap';
     wrap.style.top = (calcY(clampedMins) - 8) + 'px';
     const timeStr = (!memo.time || memo.time === '00:00') ? '종일' : memo.time;
-    const safe = (memo.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safe = escHtml(memo.content);
     wrap.innerHTML = `<div class="tg-mint-pin"></div>
       <div class="tg-mint-popover"><span style="opacity:.75;font-size:11px;">${timeStr}</span><br>${safe}</div>`;
     wrap.addEventListener('click', e => {
@@ -1961,13 +2016,13 @@ function renderCalendarGrid(el, { academics, events, allDayEvs, isCurrentDay, me
 function _calUpdateNowLine() {
   const col = document.getElementById('tg-col');
   if (!col) { if (_calTimer) { clearInterval(_calTimer); _calTimer = null; } return; }
-  const PX = 1.2, SH = 8, EH = 18;
+  const PX = 1.2;
   let line = col.querySelector('.tg-now-line');
   const now = new Date();
-  const h = now.getHours(), m = now.getMinutes();
-  if (h < SH || h >= EH) { if (line) line.remove(); return; }
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  if (nowMins < CAL_START_MINS || nowMins >= CAL_END_MINS) { if (line) line.remove(); return; }
   if (!line) { line = document.createElement('div'); line.className = 'tg-now-line'; col.appendChild(line); }
-  line.style.top = Math.max(0, (h*60+m - SH*60) * PX) + 'px';
+  line.style.top = Math.max(0, (nowMins - CAL_START_MINS) * PX) + 'px';
 }
 
 // ════════════════ 2. 학사일정 ════════════════
@@ -2837,7 +2892,7 @@ async function _calClLoad() {
     <div class="tg-cl-item">
       <span class="material-symbols-outlined" style="font-size:17px;flex-shrink:0;color:${t.is_completed ? '#14b8a6' : '#cbd5e1'};">${t.is_completed ? 'check_circle' : 'radio_button_unchecked'}</span>
       <span class="tg-cl-text${t.is_completed ? ' done' : ''}">${
-        (t.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        escHtml(t.content)
       }</span>
     </div>`).join('');
 }
@@ -2862,7 +2917,7 @@ function _renderMobileChecklist(container, todos) {
           <input type="checkbox" class="tg-cl-check" ${t.is_completed ? 'checked' : ''}
             onchange="_mobileToggleTask(${t.internal_id}, this)">
           <span class="tg-cl-text${t.is_completed ? ' done' : ''}">${
-            (t.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            escHtml(t.content)
           }</span>
         </div>`).join('')}
     </div>`;
