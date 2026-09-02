@@ -609,6 +609,10 @@
   </div>
 </div>
 
+<!-- 시간표 한 칸 판정기(공용) — PC 화면들과 완전히 같은 파일.
+     🚨 상대 경로여야 한다: GitHub Pages는 하위 경로(/ium-mobile/)로 서빙될 수 있어
+     절대 경로(/js/...)로 쓰면 404가 난다. PC 서버(/mobile.html)에서도 상대 경로가 맞다. -->
+<script src="js/timetable-cell.js"></script>
 <script>
 const SUPABASE_URL  = 'https://qhfqxrvxjrmnkskklfmm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZnF4cnZ4anJtbmtza2tsZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mjg3NjksImV4cCI6MjA5NjQwNDc2OX0.kuqxcDaWTxzZGXReIk3AtKLwip_cvDYTbi_uAmRHFHw';
@@ -1110,7 +1114,7 @@ async function loadStudentTimetable() {
       .eq('school_id', studentSchool.id).in('event_date', dates),
   ]);
 
-  const allInst   = ttRes.data  || [];
+  const allInst   = normalizeInstances(ttRes.data || []);
   const allScheds = schRes.data || [];
 
   const holidayMap = {};
@@ -1118,10 +1122,8 @@ async function loadStudentTimetable() {
     if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
   });
 
-  // vacated 시그니처: 같은 날+교시의 normal 억제용
-  const vacSigs = new Set();
-  allInst.filter(i => i.status === 'vacated' || i.status === 'absent')
-    .forEach(i => vacSigs.add(`${i.target_date}_${i.period_num}`));
+  // 가려진 normal(이사 간 수업의 원본 행) 억제용 — PC와 동일한 2단 판정
+  const hiddenIds = buildHiddenIds(allInst);
 
   const maxRows = allScheds.length > 0 ? Math.max(...allScheds.map(s => parseInt(s.display_order)||0)) : 0;
   const maxInstPeriod = allInst.length > 0
@@ -1181,7 +1183,7 @@ async function loadStudentTimetable() {
         if (row === 1) html += injectTodayClass(spanCells[dStr], spanTodayCls(dStr, todayStr, holidayRows[dStr] || effMax, todayMax));
         if (!holidayRows[dStr] || row <= holidayRows[dStr]) return;
       }
-      html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, vacSigs), todayCls);
+      html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, hiddenIds, false, studentState.grade), todayCls);
     });
     html += `</tr>`;
   }
@@ -1207,12 +1209,42 @@ function buildHolidayCell(rows, name) {
   </td>`;
 }
 
-function buildStudentCell(dateStr, rowOrder, allInst, allScheds, vacSigs, showTeacher = false) {
-  const dayScheds = allScheds.filter(s => s.target_date === dateStr);
+// ================================================================
+// Supabase 스냅샷 → PC와 같은 필드명으로 정규화
+// ----------------------------------------------------------------
+// 모바일 테이블은 internal_id / teacher_id를 쓰는데, 공용 판정기
+// (/js/timetable-cell.js)는 PC 스키마(id / user_id)를 기준으로 만들어졌다.
+// 별칭을 한 번만 붙여두면 판정기를 그대로 쓸 수 있고, internal_id·teacher_id를
+// 쓰는 기존 코드도 그대로 동작한다.
+// 🚨 id 비교는 타입이 어긋나면 Set.has가 조용히 실패하므로 숫자로 통일한다
+//    (origin_instance_id가 문자열로 오면 가려진 normal을 못 숨긴다).
+// ================================================================
+function normalizeInstances(rows) {
+  rows.forEach(i => {
+    i.id = Number(i.internal_id);
+    i.user_id = i.teacher_id;
+    if (i.origin_instance_id != null) i.origin_instance_id = Number(i.origin_instance_id);
+  });
+  return rows;
+}
 
-  // 일과 범위 초과 → 빈 셀
+
+// viewGrade: 이 표가 보여주는 학년. 학생 탭은 studentState.grade지만 학급별 탭은
+// ttClass.grade로 조회한다 — 예전엔 함수 안에서 항상 studentState.grade를 봐서
+// 학급별 탭의 학년 대상 행사 판정이 엉뚱한 학년(또는 null)을 기준으로 돌았다.
+function buildStudentCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, showTeacher = false, viewGrade = null) {
+  const dayScheds = allScheds.filter(s => s.target_date === dateStr);
+  const vGrade = viewGrade != null ? viewGrade : studentState.grade;
+
+  // 🚨 [버그 수정] 일과 범위는 그 학년 것만 봐야 한다. 예전엔 그 날 전체 학년을 통틀어
+  // 최대 display_order를 썼는데, 학년별 단축으로 1학년만 4교시까지인 날 5·6교시 줄이
+  // "범위 안"으로 남아 단축 전 인스턴스가 유령처럼 보였다(PC 시간표 뷰어와 같은 수정).
+  // 그 학년 행이 없으면 'all' 행으로만 폴백한다 — 남의 학년 행은 보지 않는다.
   if (dayScheds.length > 0) {
-    const dayMax = Math.max(...dayScheds.map(s => parseInt(s.display_order)||0));
+    const ownRows = dayScheds.filter(s => String(s.target_grade) === String(vGrade));
+    const gradeRows = ownRows.length > 0 ? ownRows : dayScheds.filter(s => s.target_grade === 'all');
+    const rangeRows = gradeRows.length > 0 ? gradeRows : dayScheds;
+    const dayMax = Math.max(...rangeRows.map(s => parseInt(s.display_order)||0));
     if (rowOrder > dayMax) return `<td class="tt-c-nodata"></td>`;
   }
 
@@ -1242,7 +1274,7 @@ function buildStudentCell(dateStr, rowOrder, allInst, allScheds, vacSigs, showTe
 
   // 이 학년 대상 행사 (특정 학년 대상)
   const gradeEvent = periodScheds.find(s =>
-    String(s.target_grade) === String(studentState.grade) && s.event_title
+    String(s.target_grade) === String(vGrade) && s.event_title
   );
   if (gradeEvent) {
     const cls = gradeEvent.is_separate ? 'st-cell-event-sep' : 'st-cell-event';
@@ -1260,7 +1292,13 @@ function buildStudentCell(dateStr, rowOrder, allInst, allScheds, vacSigs, showTe
   });
 
   const hasVacated = inst.some(i => i.status === 'vacated' || i.status === 'absent');
-  const display = inst.filter(i => i.status !== 'vacated' && i.status !== 'absent');
+  // 🚨 [가려진 normal] 예전엔 vacSigs를 인자로 받아놓고 본문에서 한 번도 쓰지 않아, 다른
+  // 날짜/교시로 이사 간 수업이 원래 자리에 그대로 남아 학생 화면에 보였다(PC는 정상).
+  const display = inst.filter(i => {
+    if (i.status === 'vacated' || i.status === 'absent') return false;
+    if (i.status === 'normal' && hiddenIds.has(i.id)) return false;
+    return true;
+  });
 
   if (hasVacated && display.length === 0) {
     const hasReinf = inst.some(i => i.status === 'reinforcement');
@@ -2404,7 +2442,7 @@ async function loadClassTtForTeacher() {
       .eq('school_id', schoolId).in('event_date', dates),
   ]);
 
-  const allInst   = ttRes.data  || [];
+  const allInst   = normalizeInstances(ttRes.data || []);
   const allScheds = schRes.data || [];
 
   const holidayMap = {};
@@ -2412,10 +2450,7 @@ async function loadClassTtForTeacher() {
     if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
   });
 
-  const vacSigs = new Set();
-  allInst.filter(i => i.status === 'vacated' || i.status === 'absent').forEach(i =>
-    vacSigs.add(`${i.grade}_${i.class_num}_${i.target_date}_${i.period_num}`)
-  );
+  const hiddenIds = buildHiddenIds(allInst);
 
   const maxRows = allScheds.length > 0 ? Math.max(...allScheds.map(s => parseInt(s.display_order)||0)) : 0;
   const maxInstPeriod = allInst.length > 0
@@ -2475,7 +2510,7 @@ async function loadClassTtForTeacher() {
         if (row === 1) html += injectTodayClass(spanCells[dStr], spanTodayCls(dStr, todayStr, holidayRows[dStr] || effMax, todayMax));
         if (!holidayRows[dStr] || row <= holidayRows[dStr]) return;
       }
-      html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, vacSigs, true), todayCls);
+      html += injectTodayClass(buildStudentCell(dStr, row, allInst, allScheds, hiddenIds, true, ttClass.grade), todayCls);
     });
     html += `</tr>`;
   }
@@ -2511,7 +2546,7 @@ async function loadTimetable() {
       .eq('school_id', schoolId).in('event_date', dates),
   ]);
 
-  const allInst   = ttRes.data  || [];
+  const allInst   = normalizeInstances(ttRes.data || []);
   const allScheds = schRes.data || [];
 
   const holidayMap = {};
@@ -2519,16 +2554,9 @@ async function loadTimetable() {
     if (isRedColor(e.color) && !holidayMap[e.event_date]) holidayMap[e.event_date] = e.content;
   });
 
-  // hiddenIds: vacated 인스턴스와 동일 서명(교사+학년+반+날짜+교시)의 normal을 숨김
-  const hiddenIds = new Set();
-  const vacSigs   = new Set();
-  allInst.filter(i => i.status === 'vacated' || i.status === 'absent').forEach(i =>
-    vacSigs.add(`${i.teacher_id}_${i.grade}_${i.class_num}_${i.target_date}_${i.period_num}`)
-  );
-  allInst.filter(i => i.status === 'normal').forEach(i => {
-    if (vacSigs.has(`${i.teacher_id}_${i.grade}_${i.class_num}_${i.target_date}_${i.period_num}`))
-      hiddenIds.add(i.internal_id);
-  });
+  // 🚨 [가려진 normal] 예전엔 origin_instance_id를 아예 안 보고 서명만 썼고, 그 서명도
+  // 과목명이 빠져 있어 PC(뷰어·빌더)와 규칙이 갈려 있었다. 이제 PC와 동일한 2단 판정을 쓴다.
+  const hiddenIds = buildHiddenIds(allInst);
 
   // maxRows: display_order 최대값
   const maxRows = allScheds.length > 0
@@ -2605,152 +2633,53 @@ async function loadTimetable() {
 function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teacherId) {
   const dayScheds = allScheds.filter(s => s.target_date === dateStr);
 
-  // display_order → period_num 매핑 (target_grade='all' 행 우선)
-  const schedEntry = dayScheds.find(s =>
-    s.target_grade === 'all' && parseInt(s.display_order) === rowOrder && parseInt(s.period_num) > 0
-  ) || dayScheds.find(s => parseInt(s.display_order) === rowOrder) || null;
-
-  let actualPeriod = rowOrder;
-  if (schedEntry && parseInt(schedEntry.period_num) > 0)
-    actualPeriod = parseInt(schedEntry.period_num);
-
-  let isEventSlot = !!(schedEntry && schedEntry.event_title && schedEntry.event_title.trim() !== '');
-
-  // 이 display_order의 모든 학년이 임장 없는 행사인지 (교사 뷰 녹색 블록)
-  const periodScheds = dayScheds.filter(s =>
-    parseInt(s.display_order) === rowOrder && parseInt(s.period_num) !== 0
-  );
-  const isAllGradeEvent = periodScheds.length > 0 &&
-    periodScheds.every(s => s.event_title && s.event_title.trim() !== '' && !s.is_separate);
-  const allGradeShort = isAllGradeEvent
-    ? (periodScheds[0].event_short_name || periodScheds[0].event_title.slice(0, 4))
-    : '';
-
-  // 이 날 일과 데이터가 있는데 display_order를 초과하면 빈 셀
-  if (dayScheds.length > 0) {
-    const dayMax = Math.max(...dayScheds.map(s => parseInt(s.display_order) || 0));
-    if (rowOrder > dayMax) return `<td class="tt-c-nodata"></td>`;
-  }
-
-  // 이 교사·날짜·교시의 인스턴스 수집 (grade-specific display_order→period_num 매핑 지원)
-  const _gpm = {};
-  dayScheds.forEach(s => {
-    if (s.target_grade === 'all' || parseInt(s.period_num) <= 0) return;
-    if (parseInt(s.display_order) !== rowOrder) return;
-    _gpm[String(s.target_grade)] = parseInt(s.period_num);
-  });
-  const _hasGS = Object.keys(_gpm).length > 0;
-  // 별도 시간표 alt_day 필터링용: 이 날짜의 "유효 요일" 계산
-  const _ttDayNames = ['sun','mon','tue','wed','thu','fri','sat'];
+  // 🏫 [별도 시간표 alt_day] 대체 요일이 바뀌기 전에 만들어진 구버전 인스턴스가 Supabase
+  // 스냅샷에 남아 있을 수 있다 — 이 날짜의 "유효 요일"과 day_of_week가 다른 별도 시간표
+  // 블록은 판정에 넣기 전에 걷어낸다. 모바일 스냅샷 고유 사정이라 공용 판정기 밖에 둔다.
+  const _ttDayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   const _ttNaturalDay = _ttDayNames[new Date(dateStr).getDay()];
   const _ttAltEntry = dayScheds.find(s => s.alt_day && s.alt_day !== 'none');
   const _ttExpectedDay = _ttAltEntry ? _ttAltEntry.alt_day : _ttNaturalDay;
-  let raw = allInst.filter(i => {
-    if (i.target_date !== dateStr) return false;
-    // 별도 시간표: alt_day 변경 전 구버전 인스턴스(day_of_week 불일치) 제거
-    if (i.is_personal && i.day_of_week != null && i.day_of_week !== _ttExpectedDay) return false;
-    const g = String(i.grade);
-    if (!_hasGS) return parseInt(i.period_num) === actualPeriod;
-    if (_gpm[g] !== undefined) return parseInt(i.period_num) === _gpm[g];
-    if (dayScheds.some(s => String(s.target_grade) === g)) return false;
-    return parseInt(i.period_num) === actualPeriod;
+  const usable = allInst.filter(i =>
+    !(i.is_personal && i.day_of_week != null && i.day_of_week !== _ttExpectedDay));
+
+  // 🔗 [공용 판정기] PC 시간표 뷰어(buildCell)와 완전히 같은 resolveCell을 쓴다
+  // (js/timetable-cell.js). 예전엔 모바일이 판정을 따로 갖고 있어서 PC를 고쳐도 여기가
+  // 안 따라왔다 — 고정수업 보강 숨김·임장 3분기·교시 매핑 폴백이 전부 빠져 있었다.
+  // 🚨 판정 규칙을 고칠 일이 생기면 여기가 아니라 그 모듈을 고쳐야 한다.
+  const r = resolveCell({
+    instances: usable,
+    dayScheds,
+    view: 'teacher', targetId: String(teacherId), dateStr, rowOrder, hiddenIds,
   });
 
-  // 학년별 일과가 분리된 경우:
-  // (1) 단축 수업: 해당 학년의 maxDisplayOrder < rowOrder → 인스턴스 제거
-  // (2) 행사 교시: 교사의 담당 학년에 event_title 있으면 isEventSlot=true
-  {
-    const shortenedGrades = new Set();
-    raw.filter(i => parseInt(i.grade) > 0).forEach(i => {
-      const gradeStr = String(i.grade);
-      const gScheds = dayScheds.filter(s => String(s.target_grade) === gradeStr);
-      if (gScheds.length > 0) {
-        const maxDo = Math.max(...gScheds.map(s => parseInt(s.display_order) || 0));
-        const isMapped = gScheds.some(s => parseInt(s.period_num) === parseInt(i.period_num) && parseInt(s.period_num) > 0);
-        if (rowOrder > maxDo && !isMapped) shortenedGrades.add(gradeStr);
-      }
-    });
-    if (shortenedGrades.size > 0) raw = raw.filter(i => !shortenedGrades.has(String(i.grade)));
+  if (r.outOfRange) return `<td class="tt-c-nodata"></td>`;
 
-    if (!isEventSlot) {
-      const teacherGrades = raw
-        .filter(i => parseInt(i.grade) > 0 && i.status !== 'vacated' && i.status !== 'absent')
-        .map(i => String(i.grade));
-      if (teacherGrades.length > 0) {
-        isEventSlot = dayScheds.some(s =>
-          teacherGrades.includes(String(s.target_grade)) &&
-          parseInt(s.display_order) === rowOrder &&
-          s.event_title && s.event_title.trim() !== ''
-        );
-      }
-    }
-  }
-
-  // 행사 슬롯: supervision만 남기고 나머지 제거
-  if (isEventSlot) raw = raw.filter(i => i.subject_name.startsWith('supervision_'));
-
-  // fixed_ 결강 처리: vacated/absent fixed_와 같은 이름의 normal은 숨김
-  // 🚨 [버그 수정] 예전엔 'vacated'만 봤다 — 고정수업은 학급 수만큼 행이 있는데(예: 1-1~1-7 = 7행)
-  // 결강은 그중 대표 한 행만 'absent'가 되므로, absent를 안 보면 나머지 6행이 그대로 남아서
-  // 결강한 교사에게 수업이 계속 보였다. PC 서버(routes/timetable.js의 캘린더 병합 쿼리)에도
-  // 똑같은 누락이 있어 함께 고쳤다 — 한쪽만 고치면 PC와 모바일이 서로 다른 걸 보여준다.
-  const vacFixedSubs = new Set(
-    raw.filter(i => (i.status === 'vacated' || i.status === 'absent') && i.subject_name.startsWith('fixed_'))
-       .map(i => i.subject_name)
-  );
-  const isFixedAbsent = sub => sub.startsWith('fixed_') && vacFixedSubs.has(sub);
-
-  const hasVacated = raw.some(i => i.status === 'vacated' || i.status === 'absent') ||
-    raw.some(i => i.status === 'normal' && isFixedAbsent(i.subject_name));
-
-  // changed_user_id = me 인 reinforcement 인스턴스 = 내 결강 슬롯을 타인이 보강 중
-  // → hasReinf 감지에만 사용하고 display에서는 제외
-  const hasReinf = raw.some(i =>
-    i.status === 'reinforcement' && i.teacher_id !== teacherId
-  );
-
-  const display = raw.filter(i => {
-    if (i.status === 'vacated' || i.status === 'absent') return false;
-    if (i.status === 'reinforcement' && i.teacher_id !== teacherId) return false;
-    if (i.status === 'normal' && hiddenIds.has(i.internal_id)) return false;
-    if (i.status === 'normal' && isFixedAbsent(i.subject_name)) return false;
-    return true;
-  });
+  const display = r.display;
 
   // 결강 (표시할 내용 없음): 보강 배정 완료면 붉은 점선, 미배정이면 노란 점선
-  if (hasVacated && display.length === 0) {
-    return `<td class="tt-mc ${hasReinf ? 'tt-c-vacated-reinf' : 'tt-c-vacated'}"></td>`;
+  if (r.hasVacated && display.length === 0) {
+    return `<td class="tt-mc ${r.hasReinf ? 'tt-c-vacated-reinf' : 'tt-c-vacated'}"></td>`;
   }
 
-  // 빈 슬롯
+  // 빈 슬롯 — 전체 학년이 임장 없는 행사면 녹색 블록
   if (display.length === 0) {
-    if (isAllGradeEvent)
+    if (r.isAllGradeEvent && r.eventSched) {
+      // 모바일은 좁은 칸이라 행사명을 4글자까지 쓴다(PC 화면은 3글자) — 표시 규칙이라 여기 남긴다.
+      const allGradeShort = r.eventSched.event_short_name || r.eventSched.event_title.slice(0, 4);
       return `<td class="tt-mc tt-c-event"><div class="tt-bb"><div class="tt-bt">${allGradeShort}</div></div></td>`;
+    }
     return `<td class="tt-c-empty"></td>`;
   }
 
-  // 표시 우선순위: supervision > 기타
-  // 🩺 [정/부 감독] 같은 학급에 임장 인스턴스가 2개 이상(정+부)이면 internal_id가 가장 작은
-  // (=정) 것을 대표로 쓴다 — 원본 데이터 순서에 기대지 않는다.
-  const supItems = display.filter(i => i.subject_name.startsWith('supervision_'))
-    .sort((a, b) => (a.internal_id || 0) - (b.internal_id || 0));
-  const regItems = display.filter(i => !i.subject_name.startsWith('supervision_'));
-
-  // fixed_ 합동수업 중복 제거 후 실질 충돌 판단
-  const _seenFixed = new Set();
-  const dedupedReg = regItems.filter(i => {
-    if (i.subject_name.startsWith('fixed_')) {
-      if (_seenFixed.has(i.subject_name)) return false;
-      _seenFixed.add(i.subject_name);
-    }
-    return true;
-  });
+  const supItems = r.supItems;
+  const dedupedReg = r.dedupedReg;
 
   if (dedupedReg.length > 1) {
     // 충돌: 모든 블록 표시 + 붉은 테두리
     const conflictOrdered = [...supItems, ...dedupedReg];
     const blocksHtml = conflictOrdered.map(item => {
-      const iS = item.subject_name.startsWith('supervision_');
+      const iS = isSupInst(item);
       const iR = item.status === 'reinforcement';
       const iC = item.status === 'changed';
       const bdg = iS ? `<span class="tt-bdg tt-bdg-im">임</span>`
@@ -2766,9 +2695,9 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   }
 
   // 단일 블록 렌더링
-  const main = supItems.length > 0 ? supItems[0] : display[0];
+  const main = r.ordered[0];
 
-  const isSup   = main.subject_name.startsWith('supervision_');
+  const isSup   = isSupInst(main);
   const isReinf = main.status === 'reinforcement';
   const isChg   = main.status === 'changed';
 
