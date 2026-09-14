@@ -614,6 +614,30 @@
      절대 경로(/js/...)로 쓰면 404가 난다. PC 서버(/mobile.html)에서도 상대 경로가 맞다. -->
 <script src="js/timetable-cell.js"></script>
 <script src="js/calendar-common.js"></script>
+<script src="js/hangul-search.js"></script>
+<script>
+// 🚨 [오프라인 안전망] 설치형 PWA라 index.html은 캐시에서 오는데 위 파일만 못 받는 상황이
+// 생길 수 있다(로딩 도중 네트워크가 끊긴 경우 등). 그때 HangulSearch가 없으면 학교·교사
+// 검색칸이 통째로 죽으므로, 없을 때만 초성 없는 예전 판정(단순 부분일치)으로 채워둔다 —
+// 초성 검색만 못 쓰고 검색 자체는 살아 있게 하는 것이 목적이다.
+// 판정 규칙은 js/hangul-search.js의 match/matchAny와 같게 맞춰둔다(빈 검색어는 전부 통과).
+if (!window.HangulSearch) {
+  const plainMatch = (text, query) => {
+    const q = String(query == null ? '' : query).trim().toLowerCase();
+    if (!q) return true;
+    return String(text == null ? '' : text).toLowerCase().includes(q);
+  };
+  window.HangulSearch = {
+    match: plainMatch,
+    matchAny: (texts, query) => {
+      if (!String(query == null ? '' : query).trim()) return true;
+      return (Array.isArray(texts) ? texts : [texts])
+        .some(t => t != null && t !== '' && plainMatch(t, query));
+    },
+  };
+  console.warn('[검색] hangul-search.js를 못 받아 초성 검색 없이 동작합니다.');
+}
+</script>
 <script>
 const SUPABASE_URL  = 'https://qhfqxrvxjrmnkskklfmm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoZnF4cnZ4anJtbmtza2tsZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mjg3NjksImV4cCI6MjA5NjQwNDc2OX0.kuqxcDaWTxzZGXReIk3AtKLwip_cvDYTbi_uAmRHFHw';
@@ -1376,7 +1400,7 @@ function filterSchools(query) {
   const dropdown = document.getElementById('school-dropdown');
   if (!query.trim()) { dropdown.style.display = 'none'; return; }
 
-  const filtered = allSchools.filter(s => s.name.includes(query.trim()));
+  const filtered = allSchools.filter(s => HangulSearch.match(s.name, query));
   if (!filtered.length) {
     dropdown.innerHTML = '<div class="school-option no-result">검색 결과가 없습니다</div>';
     dropdown.style.display = 'block';
@@ -1755,7 +1779,10 @@ async function loadCalendar() {
         grade: t.grade, class_num: t.class_num, fixedCount: cnt,
         start: times.start.slice(0,5), end: times.end.slice(0,5),
         startMins: sH*60+sM, endMins: eH*60+eM,
-        supervisionRole: t.supervision_role || ''  // 🩺 [정/부 감독] "(정)"/"(부)" — 없으면 빈 문자열
+        supervisionRole: t.supervision_role || '',  // 🩺 [정/부 감독] "(정)"/"(부)" — 없으면 빈 문자열
+        // 🩺 [슬래시 사유] 임장 매트릭스의 "/출장" 같은 예외 사유. 이게 있으면 임장 지도를
+        // 하는 게 아니므로 "임장" 태그를 떼고 제목 뒤에 괄호로 붙인다(PC 캘린더와 같은 규칙).
+        supervisionReason: t.supervision_reason || ''
       });
     });
     // 기타일정(임장X) 초록 블록 — PC의 /api/variation/schedule/other-event-periods와 같은 규칙.
@@ -1974,11 +2001,14 @@ function renderCalendarGrid(el, { academics, events, otherEvents = [], allDayEvs
     } else if (ev.type === 'class') {
       const gradeStr = (ev.isFixed || !ev.grade || !ev.class_num) ? '' : ` ${ev.grade}-${ev.class_num}`;
       titleStr = (ev.display_order ? `${ev.display_order}교시 ` : '') + escHtml(ev.title) + gradeStr;
+      // 🩺 [슬래시 사유] "행사명 (출장)" — PC 캘린더(messenger/WeeklyPopup)와 같은 형식.
+      if (ev.supervisionReason) titleStr += ` (${escHtml(ev.supervisionReason)})`;
       if (ev._reservedRoom) titleStr += ' ' + roomBadge(ev._reservedRoom);
       if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${escHtml(ev.short_label)}</span>`;
       else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
-      else if (ev.isSup)                       sub = `<span class="tg-blk-tag" style="color:#6a1b9a;">임장${ev.supervisionRole || ''}</span>`;
+      // 🩺 [슬래시 사유] 사유로 빠진 행은 임장 지도가 아니므로 "임장" 태그를 안 붙인다.
+      else if (ev.isSup && !ev.supervisionReason) sub = `<span class="tg-blk-tag" style="color:#6a1b9a;">임장${ev.supervisionRole || ''}</span>`;
     }
     // 초록 기타일정(type 'gita')은 더 이상 여기로 오지 않는다 — 위에서 뒤쪽 레이어로 따로 그린다.
     block.innerHTML =
@@ -2338,7 +2368,7 @@ function onTtTeacherInput() {
     if (ttTargetTeacherId !== null) { ttTargetTeacherId = null; loadTimetable(); }
     return;
   }
-  const matches = ttTeacherList.filter(t => t.name.includes(q));
+  const matches = ttTeacherList.filter(t => HangulSearch.match(t.name, q));
   renderTtDropdown(matches, q);
   // 정확히 일치하는 이름이 있으면 즉시 반영
   const exact = ttTeacherList.find(t => t.name === q);
@@ -2733,7 +2763,9 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
       const iS = isSupInst(item);
       const iR = item.status === 'reinforcement';
       const iC = item.status === 'changed';
-      const bdg = iS ? `<span class="tt-bdg tt-bdg-im">임</span>`
+      // 🩺 [슬래시 사유] 사유(출장 등)로 빠진 임장 행은 배지를 안 붙인다 — PC와 같은 규칙.
+      const bdg = (iS && isSupDuty(item)) ? `<span class="tt-bdg tt-bdg-im">임</span>`
+                : iS ? ''
                 : iR ? `<span class="tt-bdg tt-bdg-reinf">보</span>`
                 : iC ? `<span class="tt-bdg tt-bdg-chg">변</span>` : '';
       let rs = item.subject_name.replace(/^supervision_/, '').replace(/^fixed_/, '');
@@ -2760,7 +2792,8 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   else                    cellCls += 'tt-c-normal';
 
   let badge = '';
-  if (isSup)        badge = `<span class="tt-bdg tt-bdg-im">임</span>`;
+  // 🩺 [슬래시 사유] 사유로 빠진 임장 행은 배지 없음 — 색(보라)은 그대로 둔다.
+  if (isSup)        badge = isSupDuty(main) ? `<span class="tt-bdg tt-bdg-im">임</span>` : '';
   else if (isReinf) badge = `<span class="tt-bdg tt-bdg-reinf">보</span>`;
   else if (isChg)   badge = `<span class="tt-bdg tt-bdg-chg">변</span>`;
 

@@ -20,7 +20,32 @@
   // subject_name 접두사와 status 둘 다 봐야 한다. 접두사만 보면 status로만
   // 표시된 임장을 일반 수업으로 오인한다.
   function isSupInst(i) {
-    return i.subject_name.startsWith('supervision_') || i.status === 'supervision';
+    // subject_name이 비어 있는 행(옛 데이터·부분 조회)에서도 안전해야 한다 —
+    // 워커(dfs-worker.js)가 학기 전체 인스턴스를 이 판정에 통째로 흘려보낸다.
+    return String((i && i.subject_name) || '').startsWith('supervision_') || (!!i && i.status === 'supervision');
+  }
+
+  // ── 임장 예외 사유(슬래시 사유) ───────────────────────────────
+  // 임장 매트릭스에서 "/출장"처럼 사유가 붙은 행. 시간표 관리자가 "이 사람은 이 교시에
+  // 못 온다"고 표시해 둔 것이지 임장 지도를 하는 게 아니므로 '임' 배지를 붙이면 안 된다.
+  // 사유명 자체는 좁은 시간표 셀엔 쓰지 않고 캘린더에서만 "행사명 (사유명)"으로 보여준다.
+  // extra_info는 서버 응답에선 JSON 문자열, 화면에서 이미 파싱해 둔 경우엔 객체라 둘 다 받는다.
+  function supReason(i) {
+    if (!i || !isSupInst(i)) return null;
+    // 모바일(Supabase 미러)은 extra_info 대신 평범한 컬럼으로 받는다 —
+    // supabase-sync.js가 json_extract로 미리 꺼내 supervision_reason으로 보낸다.
+    if (i.supervision_reason) return i.supervision_reason;
+    const ex = i.extra_info;
+    if (!ex) return null;
+    if (typeof ex === 'string') {
+      try { return JSON.parse(ex).reason || null; } catch (e) { return null; }
+    }
+    return ex.reason || null;
+  }
+
+  // 실제로 임장 지도를 하는 행인지 — '임' 배지를 붙일 조건.
+  function isSupDuty(i) {
+    return isSupInst(i) && !supReason(i);
   }
 
   // ── 가려진 normal 판정용 서명 ─────────────────────────────────
@@ -390,7 +415,7 @@
     };
   }
 
-  const api = { resolveCell, isSupInst, cloakSig, buildHiddenIds, computeTimeGroups };
+  const api = { resolveCell, isSupInst, supReason, isSupDuty, cloakSig, buildHiddenIds, computeTimeGroups };
   Object.keys(api).forEach(k => { root[k] = api[k]; });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
