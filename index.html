@@ -290,8 +290,6 @@
     .fc-me-mark { font-size: 10px; font-weight: 800; color: #1a73e8; background: #e8f0fe; border-radius: 4px; padding: 1px 4px; }
     .fc-teacher-tag.sel .fc-me-mark { color: #1a73e8; background: white; }
 
-    #fc-free-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 210; display: none; }
-    #fc-free-sheet-backdrop.open { display: block; }
     #fc-free-sheet { position: fixed; left: 0; right: 0; bottom: 0; background: white; border-radius: 16px 16px 0 0; z-index: 211; max-height: 55vh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .25s cubic-bezier(.4,0,.2,1); box-shadow: 0 -4px 20px rgba(0,0,0,.15); padding-bottom: env(safe-area-inset-bottom); }
     #fc-free-sheet.open { transform: translateY(0); }
     .fc-free-sheet-handle { width: 36px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 10px auto 6px; flex-shrink: 0; }
@@ -665,7 +663,7 @@
 </div>
 
 <!-- 공강 시간 확인 모달 (수업시간표 탭 전용, 교사 화면) -->
-<div id="fc-modal" class="fc-modal">
+<div id="fc-modal" class="fc-modal" onclick="fcOnModalClick(event)">
   <div class="fc-modal-hdr">
     <button class="fc-back-btn" onclick="closeFreeCheckModal()"><span class="material-symbols-outlined">arrow_back</span></button>
     <div class="fc-modal-title">공강 시간 확인</div>
@@ -693,7 +691,6 @@
 </div>
 
 <!-- 선택 칸의 공강 교사 목록 — 하단 슬라이드업 시트 -->
-<div id="fc-free-sheet-backdrop" onclick="fcClearSelection()"></div>
 <div id="fc-free-sheet">
   <div class="fc-free-sheet-handle"></div>
   <div class="fc-free-sheet-title" id="fc-free-sheet-title"></div>
@@ -3236,7 +3233,9 @@ function renderFcGrid() {
           const gKey = g.grades.join(',');
           const active = fcSelectedCell && fcSelectedCell.date === ds && fcSelectedCell.row === row
             && fcSelectedCell.grades && fcSelectedCell.grades.join(',') === gKey;
-          const clickAttr = isPast ? '' : ` onclick="fcClickCell('${ds}',${row},[${gKey}])"`;
+          // 🚨 stopPropagation 필수: 아래 fcClickCell이 표를 다시 그리므로, 이벤트가 모달까지
+          // 올라갈 때쯤이면 눌린 칸은 이미 DOM에서 떨어져 나가 "시간표 안인가" 판정이 실패한다.
+          const clickAttr = isPast ? '' : ` onclick="event.stopPropagation();fcClickCell('${ds}',${row},[${gKey}])"`;
           const curStyle = isPast ? 'cursor:not-allowed;' : '';
           const m = fcCell(ds, row, g.grades);
           // 표에 없는 칸이면 숫자를 지어내지 않는다 — 틀린 수보다 빈 칸이 낫다.
@@ -3255,7 +3254,7 @@ function renderFcGrid() {
       }
 
       const active = fcSelectedCell && fcSelectedCell.date === ds && fcSelectedCell.row === row && !fcSelectedCell.grades;
-      const clickAttr = isPast ? '' : ` onclick="fcClickCell('${ds}',${row})"`;
+      const clickAttr = isPast ? '' : ` onclick="event.stopPropagation();fcClickCell('${ds}',${row})"`;
       const curStyle = isPast ? 'cursor:not-allowed;' : '';
 
       const m = fcCell(ds, row, null);
@@ -3314,15 +3313,22 @@ function showFcFreeSheet() {
     : `<span style="color:#94a3b8;font-size:13px;">공강 교사가 없습니다.</span>`;
 
   document.getElementById('fc-free-sheet').classList.add('open');
-  document.getElementById('fc-free-sheet-backdrop').classList.add('open');
 }
 
 function closeFcFreeSheet() {
   document.getElementById('fc-free-sheet').classList.remove('open');
-  document.getElementById('fc-free-sheet-backdrop').classList.remove('open');
 }
 
-// 시트 바깥을 누르면 칸 선택(파란 테두리)도 같이 푼다. 시트만 닫고 테두리가 남으면
+// 시간표 영역 안은 그냥 통과시킨다 — 다른 칸을 누르면 그 칸의 핸들러가 선택을 옮겨야 하고,
+// 여기서 먼저 풀어버리면 한 칸 옮기는 데 두 번 눌러야 한다. 그 바깥을 누르면 선택을 푼다.
+// (공강 시트는 #fc-modal 밖에 있어서 시트 안 터치는 여기로 올라오지 않는다.)
+function fcOnModalClick(e) {
+  if (!fcSelectedCell) return;
+  if (e.target.closest('.fc-grid-scroll')) return;
+  fcClearSelection();
+}
+
+// 칸 선택(파란 테두리)과 시트를 함께 푼다. 시트만 닫고 테두리가 남으면
 // 지금 어떤 칸을 보고 있는 건지 화면이 거짓말을 하게 된다.
 function fcClearSelection() {
   const had = fcSelectedCell !== null;
