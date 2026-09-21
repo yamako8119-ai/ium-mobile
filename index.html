@@ -2932,13 +2932,24 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
 // resolveCell·computeTimeGroups·buildHiddenIds를 그대로 쓴다 — buildMobileCell 위 주석과
 // 같은 이유(고정수업 결/보강 숨김·임장 3분기·학년별 교시 시각 등 판정 규칙이 한 곳에만 있어야
 // PC를 고쳐도 여기가 저절로 따라온다).
+// 🚨 [행 수 상한] Supabase(PostgREST)는 한 응답에 최대 1000행만 준다 — 넘으면 오류가 아니라
+// 조용히 잘린다. 잘린 수업은 "없는 수업"이 되어 그 교사가 공강으로 잡히므로, 이 기능에서는
+// 절대 상한에 닿으면 안 된다. 그래서 주 단위로 한 번에 받지 않고 날짜별로 나눠 받는다
+// (교사 100명 학교도 하루 300행 남짓). 그래도 닿으면 fcTruncated로 사용자에게 알린다.
+const FC_ROW_CAP = 1000;
+
 let fcWeekOffset = 0;
 let fcSelectedTeacherIds = new Set();
-let fcAllInst = [];
 let fcAllScheds = [];
-let fcHiddenIds = new Set();
 let fcHolidayMap = {};
 let fcSelectedCell = null; // { date, row, grades }
+let fcTruncated = false;
+let fcLoadSeq = 0;         // 늦게 도착한 옛 주 응답이 새 화면을 덮지 않게 하는 세대 번호
+
+// 칸 하나(날짜·줄·학년그룹)마다 { free: Set(교사id), busy: Set(교사id) }.
+// 주간 데이터를 받은 직후 한 번만 채우고, 이후 교사 선택·칸 클릭은 이 표를 읽기만 한다.
+let fcMatrix = {};
+let fcMaxRows = 7;
 
 async function openFreeCheckModal() {
   await loadTtTeacherList();
@@ -2962,15 +2973,21 @@ function fcWeekDates() {
   return [0, 1, 2, 3, 4].map(i => fmt(addDays(monday, i)));
 }
 
+// 이 앱이 말하는 "오늘 주"의 오프셋. 토·일이면 지난 주가 아니라 다가오는 주를 뜻한다
+// (state.timetableWeek 초기값·goToday('timetable')과 같은 규칙).
+function fcTodayWeekOffset() {
+  const day = new Date().getDay();
+  return (day === 0 || day === 6) ? 1 : 0;
+}
+
 function updateFcWeekLabel() {
   const dates = fcWeekDates();
   const s = new Date(dates[0] + 'T00:00:00');
   const e = new Date(dates[4] + 'T00:00:00');
   document.getElementById('fc-week-label').textContent =
     `${p2(s.getMonth() + 1)}.${p2(s.getDate())}~${p2(e.getMonth() + 1)}.${p2(e.getDate())}`;
-  const curMonday = fmt(getMonday(new Date(), fcWeekOffset));
-  const todayMonday = fmt(getMonday(new Date(), 0));
-  document.getElementById('fc-today-btn').style.display = curMonday === todayMonday ? 'none' : '';
+  document.getElementById('fc-today-btn').style.display =
+    fcWeekOffset === fcTodayWeekOffset() ? 'none' : '';
 }
 
 async function fcChangeWeek(delta) {
@@ -2979,12 +2996,12 @@ async function fcChangeWeek(delta) {
 }
 
 async function fcGoToday() {
-  const day = new Date().getDay();
-  fcWeekOffset = (day === 0 || day === 6) ? 1 : 0;
+  fcWeekOffset = fcTodayWeekOffset();
   await fcLoadWeekData();
 }
 
 async function fcLoadWeekData() {
+  const seq = ++fcLoadSeq;
   updateFcWeekLabel();
   fcSelectedCell = null;
   closeFcFreeSheet();
@@ -2993,33 +3010,145 @@ async function fcLoadWeekData() {
   document.getElementById('fc-grid-area').innerHTML = `<div class="loading">불러오는 중...</div>`;
 
   // 🚨 여기는 loadTimetable()과 달리 teacher_id로 거르지 않는다 — 전체 교사 중 누가
-  // 공강인지 봐야 하므로 그 주의 모든 교사 인스턴스가 필요하다.
-  const [ttRes, schRes, acRes] = await Promise.all([
-    sb.from('daily_timetable').select('*').eq('school_id', schoolId).in('target_date', dates),
-    sb.from('daily_schedules').select('*').eq('school_id', schoolId).in('target_date', dates),
-    sb.from('academic_calendar').select('event_date,content,color').eq('school_id', schoolId).in('event_date', dates),
-  ]);
+  // 공강인지 봐야 하므로 그 주의 모든 교사 인스턴스가 필요하다. 그래서 행이 많고,
+  // 주 단위로 한 번에 받으면 FC_ROW_CAP에 걸린다 → 날짜별로 쪼개서 병렬로 받는다.
+  // 컬럼은 일부러 '*'로 둔다: 공용 판정기(resolveCell)가 나중에 새 컬럼을 보기 시작해도
+  // 모바일만 조용히 다른 답을 내는 일이 없어야 한다.
+  let instRes, schRes, acRes;
+  try {
+    const results = await Promise.all([
+      ...dates.map(d =>
+        sb.from('daily_timetable').select('*').eq('school_id', schoolId).eq('target_date', d)),
+      sb.from('daily_schedules').select('*').eq('school_id', schoolId).in('target_date', dates),
+      sb.from('academic_calendar').select('event_date,content,color').eq('school_id', schoolId).in('event_date', dates),
+    ]);
+    instRes = results.slice(0, dates.length);
+    schRes  = results[dates.length];
+    acRes   = results[dates.length + 1];
+  } catch (err) {
+    console.error('[공강] 주간 데이터 조회 실패:', err);
+    if (seq === fcLoadSeq) renderFcLoadError();
+    return;
+  }
 
-  fcAllInst = normalizeInstances(ttRes.data || []);
+  // ⏱️ 주를 빠르게 넘기면 먼저 보낸 요청이 나중에 도착할 수 있다. 그때 옛 데이터로
+  // 새 주 화면을 덮으면 그리드가 통째로 빈 칸이 된다(캘린더에서 겪었던 그 증상).
+  if (seq !== fcLoadSeq) return;
+
+  const failed = [...instRes, schRes, acRes].find(r => r && r.error);
+  if (failed) {
+    console.error('[공강] 주간 데이터 조회 실패:', failed.error);
+    renderFcLoadError();
+    return;
+  }
+
+  // 🚨 조회가 상한에 닿으면 일부 수업이 없는 것처럼 보여 공강 판정이 틀린다.
+  // 조용히 틀리느니 화면에 대놓고 알린다.
+  fcTruncated = false;
+  instRes.forEach((r, i) => {
+    if ((r.data || []).length >= FC_ROW_CAP) {
+      fcTruncated = true;
+      console.warn(`[공강] ${dates[i]} 수업 데이터가 상한(${FC_ROW_CAP}행)에 닿았습니다 — 일부가 누락됐을 수 있습니다.`);
+    }
+  });
+
+  const allInst = normalizeInstances(instRes.flatMap(r => r.data || []));
   fcAllScheds = schRes.data || [];
-  fcHiddenIds = buildHiddenIds(fcAllInst);
   fcHolidayMap = {};
   (acRes.data || []).forEach(e => {
     if (isHolidayColor(e.color) && !fcHolidayMap[e.event_date]) fcHolidayMap[e.event_date] = e.content;
   });
 
+  fcBuildMatrix(allInst, dates);
   renderFcGrid();
 }
 
-function fcIsTeacherFree(teacherId, dateStr, rowOrder, weekScheds, groupGrades) {
-  const r = resolveCell({
-    instances: fcAllInst,
-    dayScheds: weekScheds.filter(s => s.target_date === dateStr),
-    view: 'teacher', targetId: String(teacherId), dateStr, rowOrder,
-    hiddenIds: fcHiddenIds, groupGrades,
+function renderFcLoadError() {
+  document.getElementById('fc-grid-area').innerHTML = `
+    <div class="loading" style="color:#b91c1c;">
+      수업 데이터를 불러오지 못했습니다.<br>
+      <button class="fc-picker-done" style="margin-top:12px;" onclick="fcLoadWeekData()">다시 시도</button>
+    </div>`;
+}
+
+// 🏫 [별도 시간표 alt_day] 대체 요일이 바뀌기 전에 만들어진 구버전 인스턴스가 Supabase
+// 스냅샷에 남아 있을 수 있다 — buildMobileCell이 판정 직전에 걷어내는 것과 같은 규칙.
+// 모바일 스냅샷 고유 사정이라 공용 판정기 밖에 있고, 그래서 판정기를 재사용해도 저절로
+// 따라오지 않는다. 🚨 buildMobileCell 쪽을 고치면 여기도 같이 고쳐야 한다.
+function fcUsableInstances(dateStr, dayScheds, dayInst) {
+  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const naturalDay = dayNames[new Date(dateStr).getDay()];
+  const altEntry = dayScheds.find(s => s.alt_day && s.alt_day !== 'none');
+  const expectedDay = altEntry ? altEntry.alt_day : naturalDay;
+  return dayInst.filter(i =>
+    !(i.is_personal && i.day_of_week != null && i.day_of_week !== expectedDay));
+}
+
+// 전 교사 × 전 칸의 공강/바쁨을 한 번에 계산해 fcMatrix에 담는다.
+//
+// 📌 [교사별로 좁혀도 되는 이유] resolveCell이 "대상 교사 본인 행" 밖을 보는 곳은
+// reinforcedFixedSubs와 hasReinf 둘뿐이고, 둘 다 status='reinforcement' 행만 찾는다.
+// 그래서 (그 교사의 행 + 그날 보강 행 전부)만 넘겨도 판정 결과가 전량을 넘긴 것과 같다.
+// 🚨 판정기가 다른 status의 남의 행까지 보게 바뀌면 이 좁히기도 같이 넓혀야 한다.
+function fcBuildMatrix(allInst, dates) {
+  fcMatrix = {};
+  // 가려진 normal(수업 이사 후 원래 자리에 남은 행)은 주 전체를 봐야 제대로 잡힌다.
+  const hiddenIds = buildHiddenIds(allInst);
+  const teacherIds = ttTeacherList.map(t => t.id);
+
+  // 표의 줄 수 — 일과 행이 아예 없는 주(적용 전·방학)는 loadTimetable()과 같이 7줄로 둔다.
+  const maxFromScheds = fcAllScheds.length
+    ? Math.max(0, ...fcAllScheds.map(s => parseInt(s.display_order) || 0)) : 0;
+  const maxFromInst = allInst.length
+    ? Math.max(0, ...allInst.filter(i => parseInt(i.period_num) > 0).map(i => parseInt(i.period_num))) : 0;
+  fcMaxRows = Math.max(maxFromScheds, maxFromInst) || 7;
+
+  dates.forEach(dateStr => {
+    const dayScheds = fcAllScheds.filter(s => s.target_date === dateStr);
+    if (dayScheds.length === 0) return;
+
+    const usable = fcUsableInstances(dateStr, dayScheds,
+      allInst.filter(i => i.target_date === dateStr));
+    const reinfRows = usable.filter(i => i.status === 'reinforcement');
+    const byTeacher = {};
+    usable.forEach(i => {
+      const k = String(i.user_id);
+      (byTeacher[k] || (byTeacher[k] = [])).push(i);
+    });
+
+    const dayMax = Math.max(...dayScheds.map(s => parseInt(s.display_order) || 0));
+    for (let row = 1; row <= dayMax; row++) {
+      const actualPeriod = resolveFcActualPeriod(dayScheds, row);
+      const timeGroups = computeTimeGroups(dayScheds, actualPeriod);
+      const variants = timeGroups ? timeGroups.map(g => g.grades) : [null];
+
+      variants.forEach(grades => {
+        const free = new Set();
+        const busy = new Set();
+        teacherIds.forEach(tid => {
+          const own = byTeacher[tid] || [];
+          const pool = own.concat(reinfRows.filter(i => String(i.user_id) !== tid));
+          const r = resolveCell({
+            instances: pool, dayScheds,
+            view: 'teacher', targetId: tid, dateStr, rowOrder: row,
+            hiddenIds, groupGrades: grades,
+          });
+          if (r.outOfRange) return;          // 일과 범위 밖 — 공강도 바쁨도 아니다
+          if (r.display.length === 0) free.add(tid);
+          else busy.add(tid);
+        });
+        fcMatrix[fcCellKey(dateStr, row, grades)] = { free, busy };
+      });
+    }
   });
-  if (r.outOfRange) return null;
-  return r.display.length === 0;
+}
+
+function fcCellKey(dateStr, row, grades) {
+  return `${dateStr}|${row}|${grades ? grades.join(',') : ''}`;
+}
+
+function fcCell(dateStr, row, grades) {
+  return fcMatrix[fcCellKey(dateStr, row, grades)] || null;
 }
 
 function resolveFcActualPeriod(dayScheds, rowOrder) {
@@ -3061,13 +3190,14 @@ function renderFcGrid() {
     if (fe) fullDayEventMap[ds] = fe.event_short_name || fe.event_title.slice(0, 4);
   });
 
-  const maxFromScheds = weekScheds.length ? Math.max(...weekScheds.map(s => parseInt(s.display_order) || 0)) : 0;
-  const maxFromInst = fcAllInst.length
-    ? Math.max(0, ...fcAllInst.filter(i => dates.includes(i.target_date) && parseInt(i.period_num) > 0).map(i => parseInt(i.period_num)))
-    : 0;
-  const maxRows = Math.max(maxFromScheds, maxFromInst) || 7;
+  const maxRows = fcMaxRows;
 
-  let html = `<table class="tt-table"><thead><tr><th></th>`;
+  let html = fcTruncated
+    ? `<div style="background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:600;padding:10px 14px;line-height:1.5;">
+         이 주의 수업 데이터가 너무 많아 일부만 불러왔습니다. 공강 표시가 실제와 다를 수 있습니다.
+       </div>`
+    : '';
+  html += `<table class="tt-table"><thead><tr><th></th>`;
   dates.forEach((ds, i) => {
     const d = new Date(ds + 'T00:00:00');
     html += `<th class="${ds === todayStr ? 'today-col' : ''}">${DAY_NAMES[i]}<br>
@@ -3106,12 +3236,14 @@ function renderFcGrid() {
             && fcSelectedCell.grades && fcSelectedCell.grades.join(',') === gKey;
           const clickAttr = isPast ? '' : ` onclick="fcClickCell('${ds}',${row},[${gKey}])"`;
           const curStyle = isPast ? 'cursor:not-allowed;' : '';
-          if (total === 0) {
+          const m = fcCell(ds, row, g.grades);
+          // 표에 없는 칸이면 숫자를 지어내지 않는다 — 틀린 수보다 빈 칸이 낫다.
+          if (total === 0 || !m) {
             return `<div class="fc-split-block${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:#f8fafc;${curStyle}">
               <span class="fc-split-label" style="color:#94a3b8;">${gKey}학년</span></div>`;
           }
           let busy = 0;
-          selectedList.forEach(id => { if (fcIsTeacherFree(id, ds, row, weekScheds, g.grades) === false) busy++; });
+          selectedList.forEach(id => { if (m.busy.has(id)) busy++; });
           const { bg, color, text } = getFcCellInfo(busy, total);
           return `<div class="fc-split-block${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:${bg};${curStyle}">
             <span class="fc-split-label" style="color:${color};">${gKey}학년 ${text}</span></div>`;
@@ -3124,12 +3256,13 @@ function renderFcGrid() {
       const clickAttr = isPast ? '' : ` onclick="fcClickCell('${ds}',${row})"`;
       const curStyle = isPast ? 'cursor:not-allowed;' : '';
 
-      if (total === 0) {
+      const m = fcCell(ds, row, null);
+      if (total === 0 || !m) {
         html += `<td class="fc-cell${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:#f8fafc;height:46px;${psStyle}${curStyle}"></td>`;
         return;
       }
       let busy = 0;
-      selectedList.forEach(id => { if (fcIsTeacherFree(id, ds, row, weekScheds) === false) busy++; });
+      selectedList.forEach(id => { if (m.busy.has(id)) busy++; });
       const { bg, color, text } = getFcCellInfo(busy, total);
       html += `<td class="fc-cell${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:${bg};height:46px;${psStyle}${curStyle}">
         <span class="fc-cell-count" style="color:${color};">${text}</span></td>`;
@@ -3161,13 +3294,15 @@ function showFcFreeSheet() {
     if (!grades) return '';
     const actualPeriod = resolveFcActualPeriod(dayScheds, row);
     const g = (computeTimeGroups(dayScheds, actualPeriod) || []).find(x => x.grades.join(',') === grades.join(','));
-    return g ? ` (${grades.join(',')}학년 ${g.start_time.slice(0, 5)}~${g.end_time.slice(0, 5)})` : '';
+    if (!g || !g.start_time || !g.end_time) return '';
+    return ` (${grades.join(',')}학년 ${g.start_time.slice(0, 5)}~${g.end_time.slice(0, 5)})`;
   })();
 
   document.getElementById('fc-free-sheet-title').textContent =
     `${d.getMonth() + 1}/${d.getDate()}(${KO_DAY[d.getDay()]}) ${row}교시${groupTimeLabel} · 공강 교사`;
 
-  const freeTeachers = ttTeacherList.filter(t => fcIsTeacherFree(t.id, date, row, weekScheds, grades) === true);
+  const m = fcCell(date, row, grades);
+  const freeTeachers = m ? ttTeacherList.filter(t => m.free.has(t.id)) : [];
   const body = document.getElementById('fc-free-sheet-body');
   body.innerHTML = freeTeachers.length > 0
     ? freeTeachers.map(t => {
