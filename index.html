@@ -693,7 +693,7 @@
 </div>
 
 <!-- 선택 칸의 공강 교사 목록 — 하단 슬라이드업 시트 -->
-<div id="fc-free-sheet-backdrop" onclick="closeFcFreeSheet()"></div>
+<div id="fc-free-sheet-backdrop" onclick="fcClearSelection()"></div>
 <div id="fc-free-sheet">
   <div class="fc-free-sheet-handle"></div>
   <div class="fc-free-sheet-title" id="fc-free-sheet-title"></div>
@@ -3320,6 +3320,15 @@ function showFcFreeSheet() {
 function closeFcFreeSheet() {
   document.getElementById('fc-free-sheet').classList.remove('open');
   document.getElementById('fc-free-sheet-backdrop').classList.remove('open');
+}
+
+// 시트 바깥을 누르면 칸 선택(파란 테두리)도 같이 푼다. 시트만 닫고 테두리가 남으면
+// 지금 어떤 칸을 보고 있는 건지 화면이 거짓말을 하게 된다.
+function fcClearSelection() {
+  const had = fcSelectedCell !== null;
+  fcSelectedCell = null;
+  closeFcFreeSheet();
+  if (had) renderFcGrid();
 }
 
 // 아래 교사 목록·공강 시트 양쪽에서 호출된다 — 어느 쪽을 눌러도 넣고 뺄 수 있어야 한다.
