@@ -249,6 +249,52 @@
     .tt-classroom-label { display: flex; align-items: center; gap: 5px; padding: 5px 11px; background: white; border: 1.5px solid #1a73e8; border-radius: 6px; box-shadow: 0 2px 8px rgba(26,115,232,.25); font-size: 12px; font-weight: 600; color: #1a73e8; cursor: pointer; user-select: none; }
     .tt-classroom-label input[type=checkbox] { accent-color: #1a73e8; width: 14px; height: 14px; cursor: pointer; }
     .tt-holiday-cell { background: #fff0f0; }
+
+    /* ── 공강 시간 확인 ── */
+    .fc-trigger-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 8px; color: #1a73e8; display: flex; align-items: center; flex-shrink: 0; }
+    .fc-trigger-btn:active { background: #f0f4ff; }
+    .fc-trigger-btn .material-symbols-outlined { font-size: 20px; }
+
+    .fc-modal { position: fixed; inset: 0; background: #f5f6f8; z-index: 200; display: none; flex-direction: column; }
+    .fc-modal.open { display: flex; }
+    .fc-modal-hdr { background: white; padding: 10px 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+    .fc-back-btn { background: none; border: none; cursor: pointer; padding: 6px; display: flex; align-items: center; color: #333; }
+    .fc-modal-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .fc-modal-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+    .fc-chip-bar { background: white; border-bottom: 1px solid #f0f0f0; padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; min-height: 20px; }
+    .fc-chip-placeholder { color: #999; font-size: 13px; }
+    .fc-chip { display: flex; align-items: center; gap: 4px; background: #e8f0fe; color: #1a4ea8; border-radius: 20px; padding: 5px 6px 5px 12px; font-size: 12px; font-weight: 600; }
+    .fc-chip-x { cursor: pointer; font-size: 15px; line-height: 1; color: #7a9ee0; padding: 2px; }
+    .fc-chip-add { color: #1a73e8; font-size: 12px; font-weight: 700; padding: 5px 10px; border: 1.5px dashed #93c5fd; border-radius: 20px; cursor: pointer; }
+
+    .fc-grid-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+    .fc-cell { cursor: pointer; text-align: center; vertical-align: middle; }
+    .fc-cell-active { outline: 2px solid #1a73e8; outline-offset: -2px; }
+    .fc-cell-count { font-size: 11px; font-weight: 800; }
+    .fc-split-inner { display: flex; flex-direction: column; height: 100%; }
+    .fc-split-block { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-bottom: 1px solid #e2e8f0; }
+    .fc-split-block:last-child { border-bottom: none; }
+    .fc-split-block.fc-cell-active { outline: 2px solid #1a73e8; outline-offset: -2px; }
+    .fc-split-label { font-size: 9px; font-weight: 700; text-align: center; padding: 0 2px; }
+
+    .fc-picker { position: absolute; inset: 0; background: white; z-index: 20; display: none; flex-direction: column; }
+    .fc-picker.open { display: flex; }
+    .fc-picker-hdr { display: flex; align-items: center; gap: 8px; padding: 12px 16px 6px; flex-shrink: 0; }
+    .fc-picker-done { background: #1a73e8; color: white; border: none; border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+    .fc-picker-tags { flex: 1; overflow-y: auto; padding: 6px 12px 20px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; }
+    .fc-picker-tag { display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 20px; border: 1.5px solid #e2e8f0; font-size: 13px; font-weight: 600; color: #333; cursor: pointer; }
+    .fc-picker-tag.sel { background: #1a73e8; color: white; border-color: #1a73e8; }
+
+    #fc-free-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 210; display: none; }
+    #fc-free-sheet-backdrop.open { display: block; }
+    #fc-free-sheet { position: fixed; left: 0; right: 0; bottom: 0; background: white; border-radius: 16px 16px 0 0; z-index: 211; max-height: 55vh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .25s cubic-bezier(.4,0,.2,1); box-shadow: 0 -4px 20px rgba(0,0,0,.15); padding-bottom: env(safe-area-inset-bottom); }
+    #fc-free-sheet.open { transform: translateY(0); }
+    .fc-free-sheet-handle { width: 36px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 10px auto 6px; flex-shrink: 0; }
+    .fc-free-sheet-title { font-size: 13px; font-weight: 700; text-align: center; padding: 0 16px 10px; color: #333; flex-shrink: 0; }
+    .fc-free-sheet-body { padding: 0 16px 20px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+    .fc-free-name-tag { padding: 7px 13px; border-radius: 20px; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .fc-free-name-tag.sel { background: #1a73e8; color: white; border-color: #1a73e8; }
     .tt-view-toggle { display: flex; border: 1.5px solid #1a73e8; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(26,115,232,.25); background: white; }
     .tt-view-toggle button { padding: 5px 13px; border: none; background: none; font-size: 12px; font-weight: 600; cursor: pointer; color: #1a73e8; }
     .tt-view-toggle button.active { background: #1a73e8; color: white; }
@@ -542,6 +588,9 @@
         <span class="week-label" id="timetable-week-label"></span>
         <button class="today-btn" onclick="goToday('timetable')">이번 주로</button>
         <button class="nav-btn" onclick="moveWeek(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+        <button class="fc-trigger-btn" onclick="openFreeCheckModal()" aria-label="공강 시간 확인">
+          <span class="material-symbols-outlined">group</span>
+        </button>
       </div>
       <div class="tt-scroll"><div id="timetable-content"></div></div>
       <div id="tt-class-bar" class="class-selector-bar" style="display:none">
@@ -611,6 +660,43 @@
     <button id="tt-toggle-teacher" onclick="setTtView('teacher')">교사별</button>
     <button id="tt-toggle-class" onclick="setTtView('class')">학급별</button>
   </div>
+</div>
+
+<!-- 공강 시간 확인 모달 (수업시간표 탭 전용, 교사 화면) -->
+<div id="fc-modal" class="fc-modal">
+  <div class="fc-modal-hdr">
+    <button class="fc-back-btn" onclick="closeFreeCheckModal()"><span class="material-symbols-outlined">arrow_back</span></button>
+    <div class="fc-modal-title">공강 시간 확인</div>
+  </div>
+  <div class="fc-modal-content">
+    <div class="fc-chip-bar" id="fc-chip-bar" onclick="openFcPicker()"></div>
+    <div class="week-nav">
+      <button class="nav-btn" onclick="fcChangeWeek(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+      <span class="week-label" id="fc-week-label"></span>
+      <button class="today-btn" id="fc-today-btn" onclick="fcGoToday()">이번 주로</button>
+      <button class="nav-btn" onclick="fcChangeWeek(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+    </div>
+    <div class="fc-grid-scroll"><div id="fc-grid-area"></div></div>
+
+    <!-- 교사 선택 피커 — 그리드를 덮는 형태로 열림 -->
+    <div id="fc-picker" class="fc-picker">
+      <div class="fc-picker-hdr">
+        <div class="tt-search-wrap" style="flex:1;margin:0;">
+          <input type="text" id="fc-teacher-search" class="tt-search-input" placeholder="교사 검색..." oninput="renderFcPickerTags()">
+        </div>
+        <button class="fc-picker-done" onclick="closeFcPicker()">완료</button>
+      </div>
+      <div class="fc-picker-tags" id="fc-picker-tags"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 선택 칸의 공강 교사 목록 — 하단 슬라이드업 시트 -->
+<div id="fc-free-sheet-backdrop" onclick="closeFcFreeSheet()"></div>
+<div id="fc-free-sheet">
+  <div class="fc-free-sheet-handle"></div>
+  <div class="fc-free-sheet-title" id="fc-free-sheet-title"></div>
+  <div class="fc-free-sheet-body" id="fc-free-sheet-body"></div>
 </div>
 
 <!-- 시간표 한 칸 판정기(공용) — PC 화면들과 완전히 같은 파일.
@@ -2838,6 +2924,319 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
     ${subText ? `<div class="tt-bs">${subText}</div>` : ''}
     ${roomText ? `<div class="tt-bs" style="color:#64748b;">${roomText}</div>` : ''}
   </div></td>`;
+}
+
+// ════════════════ 4-1. 공강 시간 확인 (수업시간표 탭) ════════════════
+// PC의 TimetableViewerPopup.html "공강 시간 확인" 모달과 같은 개념을 모바일에 이식한다.
+// 🔗 [공용 판정기] 바쁨/공강 판정은 여기서 새로 만들지 않고 js/timetable-cell.js의
+// resolveCell·computeTimeGroups·buildHiddenIds를 그대로 쓴다 — buildMobileCell 위 주석과
+// 같은 이유(고정수업 결/보강 숨김·임장 3분기·학년별 교시 시각 등 판정 규칙이 한 곳에만 있어야
+// PC를 고쳐도 여기가 저절로 따라온다).
+let fcWeekOffset = 0;
+let fcSelectedTeacherIds = new Set();
+let fcAllInst = [];
+let fcAllScheds = [];
+let fcHiddenIds = new Set();
+let fcHolidayMap = {};
+let fcSelectedCell = null; // { date, row, grades }
+
+async function openFreeCheckModal() {
+  await loadTtTeacherList();
+  fcWeekOffset = state.timetableWeek;
+  fcSelectedTeacherIds = new Set();
+  fcSelectedCell = null;
+  closeFcPicker();
+  closeFcFreeSheet();
+  renderFcChipBar();
+  document.getElementById('fc-modal').classList.add('open');
+  await fcLoadWeekData();
+}
+
+function closeFreeCheckModal() {
+  document.getElementById('fc-modal').classList.remove('open');
+  closeFcFreeSheet();
+}
+
+function fcWeekDates() {
+  const monday = getMonday(new Date(), fcWeekOffset);
+  return [0, 1, 2, 3, 4].map(i => fmt(addDays(monday, i)));
+}
+
+function updateFcWeekLabel() {
+  const dates = fcWeekDates();
+  const s = new Date(dates[0] + 'T00:00:00');
+  const e = new Date(dates[4] + 'T00:00:00');
+  document.getElementById('fc-week-label').textContent =
+    `${p2(s.getMonth() + 1)}.${p2(s.getDate())}~${p2(e.getMonth() + 1)}.${p2(e.getDate())}`;
+  const curMonday = fmt(getMonday(new Date(), fcWeekOffset));
+  const todayMonday = fmt(getMonday(new Date(), 0));
+  document.getElementById('fc-today-btn').style.display = curMonday === todayMonday ? 'none' : '';
+}
+
+async function fcChangeWeek(delta) {
+  fcWeekOffset += delta;
+  await fcLoadWeekData();
+}
+
+async function fcGoToday() {
+  const day = new Date().getDay();
+  fcWeekOffset = (day === 0 || day === 6) ? 1 : 0;
+  await fcLoadWeekData();
+}
+
+async function fcLoadWeekData() {
+  updateFcWeekLabel();
+  fcSelectedCell = null;
+  closeFcFreeSheet();
+  const dates = fcWeekDates();
+  const schoolId = me.user_metadata.school_id;
+  document.getElementById('fc-grid-area').innerHTML = `<div class="loading">불러오는 중...</div>`;
+
+  // 🚨 여기는 loadTimetable()과 달리 teacher_id로 거르지 않는다 — 전체 교사 중 누가
+  // 공강인지 봐야 하므로 그 주의 모든 교사 인스턴스가 필요하다.
+  const [ttRes, schRes, acRes] = await Promise.all([
+    sb.from('daily_timetable').select('*').eq('school_id', schoolId).in('target_date', dates),
+    sb.from('daily_schedules').select('*').eq('school_id', schoolId).in('target_date', dates),
+    sb.from('academic_calendar').select('event_date,content,color').eq('school_id', schoolId).in('event_date', dates),
+  ]);
+
+  fcAllInst = normalizeInstances(ttRes.data || []);
+  fcAllScheds = schRes.data || [];
+  fcHiddenIds = buildHiddenIds(fcAllInst);
+  fcHolidayMap = {};
+  (acRes.data || []).forEach(e => {
+    if (isHolidayColor(e.color) && !fcHolidayMap[e.event_date]) fcHolidayMap[e.event_date] = e.content;
+  });
+
+  renderFcGrid();
+}
+
+function fcIsTeacherFree(teacherId, dateStr, rowOrder, weekScheds, groupGrades) {
+  const r = resolveCell({
+    instances: fcAllInst,
+    dayScheds: weekScheds.filter(s => s.target_date === dateStr),
+    view: 'teacher', targetId: String(teacherId), dateStr, rowOrder,
+    hiddenIds: fcHiddenIds, groupGrades,
+  });
+  if (r.outOfRange) return null;
+  return r.display.length === 0;
+}
+
+function resolveFcActualPeriod(dayScheds, rowOrder) {
+  const bs = dayScheds.find(s =>
+    s.target_grade === 'all' && parseInt(s.display_order) === rowOrder && parseInt(s.period_num) > 0
+  ) || dayScheds.find(s =>
+    parseInt(s.display_order) === rowOrder && parseInt(s.period_num) > 0
+  );
+  return bs ? parseInt(bs.period_num) : rowOrder;
+}
+
+function getFcCellInfo(busyCount, total) {
+  if (busyCount === 0)     return { bg: '#dcfce7', color: '#15803d', text: `0/${total}` };
+  if (busyCount === total) return { bg: '#fecaca', color: '#991b1b', text: `${busyCount}/${total}` };
+  const ratio = busyCount / total;
+  if (ratio <= 0.34) return { bg: '#fef9c3', color: '#854d0e', text: `${busyCount}/${total}` };
+  if (ratio <= 0.67) return { bg: '#ffedd5', color: '#9a3412', text: `${busyCount}/${total}` };
+  return              { bg: '#fee2e2', color: '#b91c1c', text: `${busyCount}/${total}` };
+}
+
+function renderFcGrid() {
+  const container = document.getElementById('fc-grid-area');
+  const DAY_NAMES = ['월', '화', '수', '목', '금'];
+  const dates = fcWeekDates();
+  const todayStr = fmt(new Date());
+  const weekScheds = fcAllScheds.filter(s => dates.includes(s.target_date));
+  const selectedList = Array.from(fcSelectedTeacherIds);
+  const total = selectedList.length;
+
+  // 휴업일 / 전일제 행사 사전 계산 — is_separate 판정은 loadTimetable()과 같은 기준을 쓴다.
+  const holidayDayMap = {};
+  const fullDayEventMap = {};
+  dates.forEach(ds => {
+    if (fcHolidayMap[ds]) { holidayDayMap[ds] = fcHolidayMap[ds]; return; }
+    const dayScheds = weekScheds.filter(s => s.target_date === ds);
+    const fe = dayScheds.find(s =>
+      parseInt(s.period_num) === 0 && s.event_title && s.event_title.trim() !== '' && !s.is_separate
+    );
+    if (fe) fullDayEventMap[ds] = fe.event_short_name || fe.event_title.slice(0, 4);
+  });
+
+  const maxFromScheds = weekScheds.length ? Math.max(...weekScheds.map(s => parseInt(s.display_order) || 0)) : 0;
+  const maxFromInst = fcAllInst.length
+    ? Math.max(0, ...fcAllInst.filter(i => dates.includes(i.target_date) && parseInt(i.period_num) > 0).map(i => parseInt(i.period_num)))
+    : 0;
+  const maxRows = Math.max(maxFromScheds, maxFromInst) || 7;
+
+  let html = `<table class="tt-table"><thead><tr><th></th>`;
+  dates.forEach((ds, i) => {
+    const d = new Date(ds + 'T00:00:00');
+    html += `<th class="${ds === todayStr ? 'today-col' : ''}">${DAY_NAMES[i]}<br>
+      <span style="font-weight:400;color:#aaa;font-size:10px;">${p2(d.getMonth() + 1)}/${p2(d.getDate())}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  for (let row = 1; row <= maxRows; row++) {
+    html += `<tr><td class="period-col">${row}</td>`;
+    dates.forEach(ds => {
+      const isPast = ds < todayStr;
+      const psStyle = isPast ? 'opacity:0.55;' : '';
+
+      if (holidayDayMap[ds]) {
+        if (row === 1) html += buildHolidayCell(maxRows, holidayDayMap[ds]);
+        return;
+      }
+      if (fullDayEventMap[ds]) {
+        if (row === 1) html += `<td rowspan="${maxRows}" class="tt-mc tt-c-event" style="text-align:center;vertical-align:middle;padding:4px;">
+          <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;">${fullDayEventMap[ds]}</span></td>`;
+        return;
+      }
+
+      const dayScheds = weekScheds.filter(s => s.target_date === ds);
+      if (dayScheds.length === 0) { html += `<td class="tt-c-nodata" style="${psStyle}"></td>`; return; }
+      const dayMax = Math.max(...dayScheds.map(s => parseInt(s.display_order) || 0));
+      if (row > dayMax) { html += `<td class="tt-c-nodata" style="${psStyle}"></td>`; return; }
+
+      const actualPeriod = resolveFcActualPeriod(dayScheds, row);
+      const timeGroups = computeTimeGroups(dayScheds, actualPeriod);
+
+      if (timeGroups) {
+        const blocks = timeGroups.map(g => {
+          const gKey = g.grades.join(',');
+          const active = fcSelectedCell && fcSelectedCell.date === ds && fcSelectedCell.row === row
+            && fcSelectedCell.grades && fcSelectedCell.grades.join(',') === gKey;
+          const clickAttr = isPast ? '' : ` onclick="fcClickCell('${ds}',${row},[${gKey}])"`;
+          const curStyle = isPast ? 'cursor:not-allowed;' : '';
+          if (total === 0) {
+            return `<div class="fc-split-block${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:#f8fafc;${curStyle}">
+              <span class="fc-split-label" style="color:#94a3b8;">${gKey}학년</span></div>`;
+          }
+          let busy = 0;
+          selectedList.forEach(id => { if (fcIsTeacherFree(id, ds, row, weekScheds, g.grades) === false) busy++; });
+          const { bg, color, text } = getFcCellInfo(busy, total);
+          return `<div class="fc-split-block${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:${bg};${curStyle}">
+            <span class="fc-split-label" style="color:${color};">${gKey}학년 ${text}</span></div>`;
+        }).join('');
+        html += `<td style="padding:0;height:46px;${psStyle}"><div class="fc-split-inner">${blocks}</div></td>`;
+        return;
+      }
+
+      const active = fcSelectedCell && fcSelectedCell.date === ds && fcSelectedCell.row === row && !fcSelectedCell.grades;
+      const clickAttr = isPast ? '' : ` onclick="fcClickCell('${ds}',${row})"`;
+      const curStyle = isPast ? 'cursor:not-allowed;' : '';
+
+      if (total === 0) {
+        html += `<td class="fc-cell${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:#f8fafc;height:46px;${psStyle}${curStyle}"></td>`;
+        return;
+      }
+      let busy = 0;
+      selectedList.forEach(id => { if (fcIsTeacherFree(id, ds, row, weekScheds) === false) busy++; });
+      const { bg, color, text } = getFcCellInfo(busy, total);
+      html += `<td class="fc-cell${active ? ' fc-cell-active' : ''}"${clickAttr} style="background:${bg};height:46px;${psStyle}${curStyle}">
+        <span class="fc-cell-count" style="color:${color};">${text}</span></td>`;
+    });
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+}
+
+function fcClickCell(dateStr, row, grades) {
+  const todayStr = fmt(new Date());
+  if (dateStr < todayStr) return;
+  fcSelectedCell = { date: dateStr, row, grades: grades || null };
+  renderFcGrid();
+  showFcFreeSheet();
+}
+
+function showFcFreeSheet() {
+  if (!fcSelectedCell) return;
+  const { date, row, grades } = fcSelectedCell;
+  const dates = fcWeekDates();
+  const weekScheds = fcAllScheds.filter(s => dates.includes(s.target_date));
+  const dayScheds = weekScheds.filter(s => s.target_date === date);
+  const d = new Date(date + 'T00:00:00');
+  const KO_DAY = ['일', '월', '화', '수', '목', '금', '토'];
+
+  const groupTimeLabel = (() => {
+    if (!grades) return '';
+    const actualPeriod = resolveFcActualPeriod(dayScheds, row);
+    const g = (computeTimeGroups(dayScheds, actualPeriod) || []).find(x => x.grades.join(',') === grades.join(','));
+    return g ? ` (${grades.join(',')}학년 ${g.start_time.slice(0, 5)}~${g.end_time.slice(0, 5)})` : '';
+  })();
+
+  document.getElementById('fc-free-sheet-title').textContent =
+    `${d.getMonth() + 1}/${d.getDate()}(${KO_DAY[d.getDay()]}) ${row}교시${groupTimeLabel} · 공강 교사`;
+
+  const freeTeachers = ttTeacherList.filter(t => fcIsTeacherFree(t.id, date, row, weekScheds, grades) === true);
+  const body = document.getElementById('fc-free-sheet-body');
+  body.innerHTML = freeTeachers.length > 0
+    ? freeTeachers.map(t => {
+        const sel = fcSelectedTeacherIds.has(t.id) ? ' sel' : '';
+        return `<span class="fc-free-name-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${t.name}</span>`;
+      }).join('')
+    : `<span style="color:#94a3b8;font-size:13px;">공강 교사가 없습니다.</span>`;
+
+  document.getElementById('fc-free-sheet').classList.add('open');
+  document.getElementById('fc-free-sheet-backdrop').classList.add('open');
+}
+
+function closeFcFreeSheet() {
+  document.getElementById('fc-free-sheet').classList.remove('open');
+  document.getElementById('fc-free-sheet-backdrop').classList.remove('open');
+}
+
+// 그리드 색·시트 목록 양쪽에서 호출된다 — 같은 이름을 눌러 넣고 빼는 게 둘 다 가능해야 한다.
+function toggleFcTeacher(teacherId) {
+  const id = String(teacherId);
+  if (fcSelectedTeacherIds.has(id)) fcSelectedTeacherIds.delete(id);
+  else fcSelectedTeacherIds.add(id);
+  renderFcChipBar();
+  renderFcGrid();
+  if (document.getElementById('fc-picker').classList.contains('open')) renderFcPickerTags();
+  if (fcSelectedCell) showFcFreeSheet();
+}
+
+function removeFcTeacher(teacherId) {
+  fcSelectedTeacherIds.delete(String(teacherId));
+  renderFcChipBar();
+  renderFcGrid();
+}
+
+function renderFcChipBar() {
+  const bar = document.getElementById('fc-chip-bar');
+  const ids = Array.from(fcSelectedTeacherIds);
+  if (ids.length === 0) {
+    bar.innerHTML = `<span class="fc-chip-placeholder">확인할 교사를 선택하세요</span>`;
+    return;
+  }
+  bar.innerHTML = ids.map(id => {
+    const t = ttTeacherList.find(t => t.id === id);
+    return `<span class="fc-chip">${t ? t.name : '?'}<span class="fc-chip-x" onclick="event.stopPropagation();removeFcTeacher('${id}')">×</span></span>`;
+  }).join('') + `<span class="fc-chip-add" onclick="event.stopPropagation();openFcPicker()">+ 추가</span>`;
+}
+
+function openFcPicker() {
+  document.getElementById('fc-picker').classList.add('open');
+  const input = document.getElementById('fc-teacher-search');
+  input.value = '';
+  renderFcPickerTags();
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeFcPicker() {
+  document.getElementById('fc-picker').classList.remove('open');
+}
+
+function renderFcPickerTags() {
+  const q = document.getElementById('fc-teacher-search').value.trim();
+  const list = q ? ttTeacherList.filter(t => HangulSearch.match(t.name, q)) : ttTeacherList;
+  const wrap = document.getElementById('fc-picker-tags');
+  wrap.innerHTML = list.length > 0
+    ? list.map(t => {
+        const sel = fcSelectedTeacherIds.has(t.id) ? ' sel' : '';
+        return `<span class="fc-picker-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${t.name}</span>`;
+      }).join('')
+    : `<div style="width:100%;padding:24px;text-align:center;color:#aaa;font-size:13px;">검색 결과가 없습니다.</div>`;
 }
 
 // ════════════════ 5. 조종례 ════════════════
