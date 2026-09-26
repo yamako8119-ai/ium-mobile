@@ -789,9 +789,13 @@ const isToday = d => fmt(d) === fmt(new Date());
 // ── 자동 로그인 저장소 ──
 const CRED_KEY = 'eeum_cred';
 
-function saveCredentials(email, password, school, displayName) {
+// 🔒 [비밀번호는 저장하지 않는다 — 2026-09-27] 예전엔 자동 로그인용으로 비밀번호를 평문으로 넣었다.
+//    모바일 비밀번호는 곧 PC 메신저 비밀번호라, 휴대폰을 잠깐 빌려주거나 페이지에 스크립트 삽입 구멍이
+//    하나라도 생기면 PC 비밀번호까지 샌다. 로그인 유지는 Supabase가 세션 토큰으로 이미 하고 있으므로
+//    여기엔 다음 로그인 때 칸을 채워 줄 학교·이름만 남긴다.
+function saveCredentials(email, school, displayName) {
   localStorage.setItem(CRED_KEY, JSON.stringify({
-    email, password,
+    email,
     schoolId: school.id, schoolCode: school.code,
     schoolName: school.name, schoolRegion: school.region || '',
     displayName
@@ -799,7 +803,15 @@ function saveCredentials(email, password, school, displayName) {
 }
 
 function loadCredentials() {
-  try { return JSON.parse(localStorage.getItem(CRED_KEY)); } catch { return null; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(CRED_KEY));
+    // 예전 버전이 남긴 평문 비밀번호는 읽는 즉시 지운다.
+    if (saved && 'password' in saved) {
+      delete saved.password;
+      localStorage.setItem(CRED_KEY, JSON.stringify(saved));
+    }
+    return saved;
+  } catch { return null; }
 }
 
 function clearCredentials() {
@@ -819,7 +831,6 @@ function prefillLoginForm(saved) {
     }
   }
   document.getElementById('login-name').value = saved.displayName || '';
-  document.getElementById('login-pw').value = saved.password || '';
 }
 
 // ── 로그인 모드 ──
@@ -1451,13 +1462,9 @@ window.onload = async () => {
   const { data: { session } } = await sb.auth.getSession();
   if (session) { showApp(session.user); return; }
 
-  // 교사 자동 로그인
+  // 세션이 없으면(로그아웃했거나 만료) 비밀번호를 다시 받는다 — 학교·이름만 미리 채워 준다.
   const saved = loadCredentials();
-  if (saved) {
-    const { data, error } = await sb.auth.signInWithPassword({ email: saved.email, password: saved.password });
-    if (!error && data.user) { showApp(data.user); return; }
-    prefillLoginForm(saved);
-  }
+  if (saved) prefillLoginForm(saved);
 
   // 학생 세션 복원
   if (loginMode === 'student') {
@@ -1562,7 +1569,7 @@ async function login() {
   }
 
   btn.disabled = false; btn.textContent = '로그인';
-  saveCredentials(email, pw, school, name);
+  saveCredentials(email, school, name);
   showApp(data.user);
 }
 
