@@ -764,6 +764,7 @@ const ttClass = {
   grade:    parseInt(localStorage.getItem('eeum_tt_cls_grade')) || null,
   classNum: parseInt(localStorage.getItem('eeum_tt_cls_num'))   || null,
   classes:  [],
+  loaded:   false,   // 학급 목록을 한 번이라도 제대로 받았나
 };
 
 // ── 유틸 ──
@@ -926,7 +927,11 @@ async function showStudentApp(school) {
   document.querySelector('#student-screen .nav-item:nth-child(2)').classList.add('active');
   updateClassroomCheckboxVisibility();
 
-  await loadStudentClasses(school.id);
+  // 목록을 못 받으면 학년·반을 고를 수 없다 — 빈 드롭다운 대신 오류와 다시 시도를 보인다.
+  if (!(await loadStudentClasses(school.id))) {
+    document.getElementById('student-timetable-content').innerHTML = loadErrorHtml('showStudentApp(studentSchool)');
+    return;
+  }
 
   const savedClass = (() => { try { return JSON.parse(localStorage.getItem('eeum_student_class')); } catch { return null; } })();
   if (savedClass) {
@@ -946,8 +951,8 @@ async function loadStudentClasses(schoolId) {
     .eq('school_id', schoolId)
     .limit(3000);
 
-  if (error) { console.warn('[Student] daily_timetable 조회 실패:', error.message); return; }
-  if (!data || data.length === 0) { console.warn('[Student] 데이터 없음 (school_id:', schoolId, ')'); return; }
+  if (error) { console.error('[Student] daily_timetable 조회 실패:', error); return false; }
+  if (!data || data.length === 0) { console.warn('[Student] 데이터 없음 (school_id:', schoolId, ')'); return true; }
 
   const seen = new Set();
   studentState.classes = data
@@ -965,6 +970,7 @@ async function loadStudentClasses(schoolId) {
     .sort((a, b) => a.grade !== b.grade ? a.grade - b.grade : a.class_num - b.class_num);
 
   populateGradeSelect();
+  return true;
 }
 
 function populateGradeSelect() {
@@ -1681,6 +1687,7 @@ function resetToLoginScreen() {
   ttTeacherList = [];
   ttTargetTeacherId = null;
   ttClass.classes = [];
+  ttClass.loaded = false;
   document.getElementById('school-input').value = '';
   document.getElementById('school-input').classList.remove('has-value');
   document.getElementById('region-group').style.display = 'none';
@@ -2612,19 +2619,30 @@ let ttTeacherList = [];   // [{ id, name }]
 let ttTargetTeacherId = null;  // null = 내 시간표
 let _ttDropFocusIdx = -1;
 
-async function loadTtTeacherList() {
-  if (ttTeacherList.length > 0) return;
+// 실패하면 false. 로그인 직후·검색칸·공강 확인이 동시에 부를 수 있어 진행 중인 요청 하나에 합류한다.
+let _ttTeacherListPromise = null;
+function loadTtTeacherList() {
+  if (ttTeacherList.length > 0) return Promise.resolve(true);
+  if (!_ttTeacherListPromise) {
+    _ttTeacherListPromise = _fetchTtTeacherList().finally(() => { _ttTeacherListPromise = null; });
+  }
+  return _ttTeacherListPromise;
+}
+
+async function _fetchTtTeacherList() {
   const schoolId = me.user_metadata.school_id;
-  const { data } = await sb.from('daily_timetable')
+  const { data, error } = await sb.from('daily_timetable')
     .select('teacher_id, teacher_name')
     .eq('school_id', schoolId)
     .limit(5000);
-  if (!data) return;
+  if (error) { console.error('[교사 명단] 조회 실패:', error); return false; }
+  if (!data) return true;
   const seen = new Set();
   ttTeacherList = data
     .filter(r => r.teacher_id && r.teacher_name && !seen.has(r.teacher_id) && seen.add(r.teacher_id))
     .map(r => ({ id: String(r.teacher_id), name: r.teacher_name }))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  return true;
 }
 
 function onTtTeacherInput() {
@@ -2634,6 +2652,12 @@ function onTtTeacherInput() {
   if (!q) {
     hideTtDropdown();
     if (ttTargetTeacherId !== null) { ttTargetTeacherId = null; loadTimetable(); }
+    return;
+  }
+  // 명단을 아직(또는 로그인 때 실패해서) 못 받았으면 받아 온 뒤 다시 검색한다 —
+  // 안 그러면 어떤 이름을 쳐도 결과가 없다.
+  if (ttTeacherList.length === 0) {
+    loadTtTeacherList().then(ok => { if (ok && ttTeacherList.length > 0) onTtTeacherInput(); });
     return;
   }
   const matches = ttTeacherList.filter(t => HangulSearch.match(t.name, q));
@@ -2711,8 +2735,7 @@ function setTtView(mode) {
   if (mode === 'class') {
     bar.style.display = 'flex';
     searchWrap.style.display = 'none';
-    if (ttClass.classes.length === 0) loadTtClasses().then(() => loadTimetable());
-    else loadTimetable();
+    loadTimetable();   // 학급 목록이 아직 없으면 loadClassTtForTeacher가 먼저 받는다
   } else {
     bar.style.display = 'none';
     searchWrap.style.display = '';
@@ -2720,10 +2743,14 @@ function setTtView(mode) {
   }
 }
 
+// 실패하면 false. 성공하면 ttClass.loaded를 세워 두고, 학급별 시간표가 목록 없이 그려지려 할 때
+// (로그인 때 실패한 경우) loadClassTtForTeacher가 다시 받는다.
 async function loadTtClasses() {
   const schoolId = me.user_metadata.school_id;
-  const { data } = await sb.from('daily_timetable').select('grade, class_num').eq('school_id', schoolId).limit(3000);
-  if (!data) return;
+  const { data, error } = await sb.from('daily_timetable').select('grade, class_num').eq('school_id', schoolId).limit(3000);
+  if (error) { console.error('[학급 목록] 조회 실패:', error); return false; }
+  ttClass.loaded = true;
+  if (!data) return true;
   const seen = new Set();
   ttClass.classes = data
     .filter(r => parseInt(r.grade) > 0 && parseInt(r.class_num) > 0)
@@ -2734,6 +2761,7 @@ async function loadTtClasses() {
     }, [])
     .sort((a, b) => a.grade !== b.grade ? a.grade - b.grade : a.class_num - b.class_num);
   populateTtGradeSelect();
+  return true;
 }
 
 function populateTtGradeSelect() {
@@ -2771,6 +2799,11 @@ async function loadClassTtForTeacher() {
   // 교사별 시간표(loadTimetable)와 같은 자리에 그리므로 같은 키를 쓴다 — 보기를 바꾸는 순간
   // 진행 중이던 다른 보기 조회가 뒤늦게 덮지 않게.
   const seq = beginLoad('timetable');
+  if (!ttClass.loaded) {
+    const ok = await loadTtClasses();
+    if (isStale('timetable', seq)) return;
+    if (!ok) { el.innerHTML = loadErrorHtml('loadTimetable()'); return; }
+  }
   if (!ttClass.grade || !ttClass.classNum) {
     el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">학년과 반을 선택해주세요.</div>';
     return;
@@ -3115,7 +3148,7 @@ let fcMatrix = {};
 let fcMaxRows = 7;
 
 async function openFreeCheckModal() {
-  await loadTtTeacherList();
+  const teachersOk = await loadTtTeacherList();
   fcWeekOffset = state.timetableWeek;
   fcSelectedTeacherIds = new Set();
   fcSelectedCell = null;
@@ -3123,6 +3156,10 @@ async function openFreeCheckModal() {
   document.getElementById('fc-teacher-search').value = '';
   renderFcTeacherList();
   document.getElementById('fc-modal').classList.add('open');
+  // 명단이 없으면 교사를 고를 수 없어 "검색 결과가 없습니다"로 보인다 — 실패라고 알린다.
+  if (!teachersOk) {
+    document.getElementById('fc-teacher-list').innerHTML = loadErrorHtml('openFreeCheckModal()');
+  }
   await fcLoadWeekData();
 }
 
