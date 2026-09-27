@@ -114,6 +114,7 @@
     .empty-state .material-symbols-outlined { font-size: 48px; display: block; margin-bottom: 10px; }
     .empty-state p { font-size: 14px; }
     .loading { text-align: center; padding: 40px 24px; color: #ccc; font-size: 14px; }
+    .retry-btn { margin-top: 12px; background: #e8f0fe; border: none; color: #1a73e8; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
     .section-label { font-size: 12px; font-weight: 700; color: #999; padding: 16px 16px 6px; text-transform: uppercase; letter-spacing: .5px; }
 
     /* ── 캘린더 시간 그리드 ── */
@@ -365,7 +366,7 @@
     .cat-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #e8f0fe; color: #1a73e8; }
     .grade-tag { font-size: 11px; color: #999; }
     .morning-title { font-size: 14px; font-weight: 700; color: #1a1a1a; line-height: 1.4; }
-    .morning-content { font-size: 13px; color: #555; margin-top: 5px; line-height: 1.6; }
+    .morning-content { font-size: 13px; color: #555; margin-top: 5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
     .morning-author { font-size: 11px; color: #bbb; margin-top: 7px; }
 
     /* ── 하단 네비 ── */
@@ -785,6 +786,38 @@ const getMonday = (d, offset=0) => {
   return r;
 };
 const isToday = d => fmt(d) === fmt(new Date());
+// 달 이동은 반드시 1일로 옮긴 뒤 한다. 오늘(31일)에서 월만 바꾸면 "11월 31일"이 12월 1일로
+// 넘어가 한 달을 건너뛴다 — 매달 29~31일마다 학사일정 다음 달 버튼이 두 달씩 넘어가던 문제.
+const shiftMonth = (d, delta) => new Date(d.getFullYear(), d.getMonth() + delta, 1);
+
+// ── 늦게 도착한 옛 응답 거르기 ──
+// 탭 화면들은 "여러 개 조회 → 다 오면 통째로 다시 그리기"라, 날짜를 빠르게 넘기면 먼저 보낸
+// 요청이 나중에 도착해 새 날짜 제목 아래 옛 날짜 내용을 그린다(PC 캘린더 2026-09-16과 같은 증상).
+// 화면(그리는 자리)마다 순번을 두고, 응답이 왔을 때 순번이 바뀌었으면 그리지 않는다.
+// 🚨 같은 자리에 그리는 함수끼리는 같은 키를 써야 한다(교사별·학급별 시간표 = 'timetable').
+const _loadSeq = {};
+const beginLoad = key => (_loadSeq[key] = (_loadSeq[key] || 0) + 1);
+const isStale   = (key, seq) => _loadSeq[key] !== seq;
+
+// Supabase 조회 묶음을 받아 하나라도 실패했는지 알려준다. supabase-js는 실패해도 throw하지 않고
+// { data: null, error }를 돌려주므로, 검사하지 않으면 "일정이 없습니다"로 조용히 둔갑한다.
+async function fetchAll(queries) {
+  try {
+    const results = await Promise.all(queries);
+    const failed = results.find(r => r && r.error);
+    return { results, error: failed ? failed.error : null };
+  } catch (err) {
+    return { results: null, error: err };
+  }
+}
+
+// 불러오기 실패 화면 — "없음"과 구분되게 대놓고 알리고 다시 시도할 수 있게 한다.
+function loadErrorHtml(retryCall) {
+  return `<div class="loading" style="color:#b91c1c;">
+    불러오지 못했습니다. 인터넷 연결을 확인해주세요.<br>
+    <button class="retry-btn" onclick="${retryCall}">다시 시도</button>
+  </div>`;
+}
 
 // ── 자동 로그인 저장소 ──
 const CRED_KEY = 'eeum_cred';
@@ -858,7 +891,13 @@ async function studentLogin() {
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = '확인 중...';
 
-  const { data: mobileOk } = await sb.rpc('check_mobile_enabled', { p_school_id: selectedSchool.id });
+  const { data: mobileOk, error: mobileErr } = await sb.rpc('check_mobile_enabled', { p_school_id: selectedSchool.id });
+  // 조회 실패를 "활성화 안 된 학교"로 안내하면 관리자에게 엉뚱한 문의가 간다 — 연결 문제는 따로 알린다.
+  if (mobileErr) {
+    console.error('[학생 접속] 모바일 사용 여부 확인 실패:', mobileErr);
+    err.textContent = '서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
+    btn.disabled = false; btn.textContent = '학교 접속'; return;
+  }
   if (!mobileOk) {
     err.textContent = '모바일 버전이 활성화되지 않은 학교입니다. 관리자에게 문의하세요.';
     btn.disabled = false; btn.textContent = '학교 접속'; return;
@@ -987,7 +1026,7 @@ function switchStTab(tab, btn) {
 }
 
 function stMoveMonth(delta) {
-  stState.academic.setMonth(stState.academic.getMonth() + delta);
+  stState.academic = shiftMonth(stState.academic, delta);
   loadStAcademic();
 }
 
@@ -1016,8 +1055,12 @@ async function loadStAcademic() {
   const lastDay = new Date(year, month+1, 0).getDate();
   const end   = `${year}-${p2(month+1)}-${p2(lastDay)}`;
 
-  const { data: events } = await sb.from('academic_calendar')
-    .select('*').eq('school_id', studentSchool.id).gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx');
+  const seq = beginLoad('stAcademic');
+  const { results, error } = await fetchAll([sb.from('academic_calendar')
+    .select('*').eq('school_id', studentSchool.id).gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx')]);
+  if (isStale('stAcademic', seq)) return;
+  if (error) { console.error('[학생 학사일정] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadStAcademic()'); return; }
+  const events = results[0].data;
 
   const eventMap = {};
   (events || []).forEach(e => {
@@ -1080,10 +1123,12 @@ async function loadStPeriods() {
   document.getElementById('st-periods-date-label').textContent = dateLabel(d);
   const el = document.getElementById('st-periods-content');
 
-  const { data } = await sb.from('daily_schedules')
-    .select('*').eq('school_id', studentSchool.id).eq('target_date', fmt(d)).order('display_order');
-
-
+  const seq = beginLoad('stPeriods');
+  const { results, error } = await fetchAll([sb.from('daily_schedules')
+    .select('*').eq('school_id', studentSchool.id).eq('target_date', fmt(d)).order('display_order')]);
+  if (isStale('stPeriods', seq)) return;
+  if (error) { console.error('[학생 일과] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadStPeriods()'); return; }
+  const data = results[0].data;
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
@@ -1209,6 +1254,8 @@ async function loadStPeriods() {
 
 async function loadStudentTimetable() {
   const el = document.getElementById('student-timetable-content');
+  // 순번은 조기 반환보다 먼저 올린다 — 반 선택을 지우는 순간 진행 중이던 조회가 뒤늦게 표를 그리지 않게.
+  const seq = beginLoad('stTimetable');
   if (!studentSchool || !studentState.grade || !studentState.classNum) {
     el.innerHTML = '<div style="padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">학년과 반을 선택하세요.</div>';
     document.getElementById('student-week-label').textContent = '';
@@ -1225,7 +1272,7 @@ async function loadStudentTimetable() {
 
   el.innerHTML = '<div style="padding:24px;text-align:center;color:#ccc;">불러오는 중...</div>';
 
-  const [ttRes, schRes, acRes] = await Promise.all([
+  const { results, error } = await fetchAll([
     sb.from('daily_timetable').select('*')
       .eq('school_id', studentSchool.id)
       .in('target_date', dates)
@@ -1237,6 +1284,9 @@ async function loadStudentTimetable() {
     sb.from('academic_calendar').select('event_date,content,color')
       .eq('school_id', studentSchool.id).in('event_date', dates),
   ]);
+  if (isStale('stTimetable', seq)) return;
+  if (error) { console.error('[학생 시간표] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadStudentTimetable()'); return; }
+  const [ttRes, schRes, acRes] = results;
 
   const allInst   = normalizeInstances(ttRes.data || []);
   const allScheds = schRes.data || [];
@@ -1486,8 +1536,13 @@ document.addEventListener('click', e => {
 let allSchools = [];
 let selectedSchool = null;
 
+let schoolsLoadFailed = false;
+let _schoolsRetry = null;
 async function loadSchools() {
-  const { data } = await sb.from('schools').select('id, name, code, region, classroom_type').order('name');
+  const { data, error } = await sb.from('schools').select('id, name, code, region, classroom_type').order('name');
+  // 실패하면 검색칸이 모든 학교에 "검색 결과가 없습니다"라고 답한다 — 표시해 두고 검색 때 다시 받는다.
+  schoolsLoadFailed = !!error;
+  if (error) console.error('[로그인] 학교 목록 조회 실패:', error);
   allSchools = data || [];
 }
 
@@ -1495,6 +1550,21 @@ function filterSchools(query) {
   const dropdown = document.getElementById('school-dropdown');
   if (!query.trim()) { dropdown.style.display = 'none'; return; }
 
+  if (schoolsLoadFailed) {
+    dropdown.innerHTML = '<div class="school-option no-result">학교 목록을 불러오지 못했습니다. 다시 시도하는 중…</div>';
+    dropdown.style.display = 'block';
+    // 글자를 칠 때마다 요청이 겹쳐 나가지 않게 진행 중인 재시도 하나에 합류한다.
+    if (!_schoolsRetry) _schoolsRetry = loadSchools().finally(() => { _schoolsRetry = null; });
+    _schoolsRetry.then(() => {
+      const input = document.getElementById('school-input');
+      if (schoolsLoadFailed) {
+        dropdown.innerHTML = '<div class="school-option no-result">학교 목록을 불러오지 못했습니다. 인터넷 연결을 확인해주세요.</div>';
+      } else if (input.value.trim()) {
+        filterSchools(input.value);
+      }
+    });
+    return;
+  }
   const filtered = allSchools.filter(s => HangulSearch.match(s.name, query));
   if (!filtered.length) {
     dropdown.innerHTML = '<div class="school-option no-result">검색 결과가 없습니다</div>';
@@ -1545,7 +1615,14 @@ async function login() {
   const school = selectedSchool;
   btn.disabled = true; btn.textContent = '확인 중...';
 
-  const { data: mobileOk } = await sb.rpc('check_mobile_enabled', { p_school_id: school.id });
+  const { data: mobileOk, error: mobileErr } = await sb.rpc('check_mobile_enabled', { p_school_id: school.id });
+  // 조회 실패를 "활성화 안 된 학교"·"등록 안 된 이름"·"비밀번호 틀림"으로 안내하면 교사가 관리자에게
+  // 엉뚱한 문의를 한다 — 각 단계의 연결 실패는 따로 알린다.
+  if (mobileErr) {
+    console.error('[로그인] 모바일 사용 여부 확인 실패:', mobileErr);
+    err.textContent = '서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
+    btn.disabled = false; btn.textContent = '로그인'; return;
+  }
   if (!mobileOk) {
     err.textContent = '모바일 버전이 활성화되지 않은 학교입니다. 관리자에게 문의하세요.';
     btn.disabled = false; btn.textContent = '로그인'; return;
@@ -1555,6 +1632,11 @@ async function login() {
   const { data: lookup, error: le } = await sb
     .from('teacher_lookup').select('username').eq('school_id', school.id).eq('display_name', name).maybeSingle();
 
+  if (le) {
+    console.error('[로그인] 교사 이름 조회 실패:', le);
+    err.textContent = '서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
+    btn.disabled = false; btn.textContent = '로그인'; return;
+  }
   if (!lookup) {
     err.textContent = '등록되지 않은 이름입니다. 관리자에게 문의하세요.';
     btn.disabled = false; btn.textContent = '로그인'; return;
@@ -1564,7 +1646,16 @@ async function login() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
 
   if (error) {
-    err.textContent = '비밀번호가 올바르지 않습니다.';
+    // 비밀번호 오류는 400(invalid_credentials)으로 온다. 연결 실패(상태 없음)·서버 오류(5xx)·
+    // 시도 횟수 초과(429)까지 "비밀번호가 틀렸다"고 하면 맞는 비밀번호를 의심하게 된다.
+    if (error.status === 429) {
+      err.textContent = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.';
+    } else if (!error.status || error.status >= 500) {
+      console.error('[로그인] 인증 서버 연결 실패:', error);
+      err.textContent = '서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
+    } else {
+      err.textContent = '비밀번호가 올바르지 않습니다.';
+    }
     btn.disabled = false; btn.textContent = '로그인'; return;
   }
 
@@ -1574,9 +1665,18 @@ async function login() {
 }
 
 async function logout() {
+  // me를 먼저 비운다 — signOut이 SIGNED_OUT을 쏘면 아래 "세션 잃음" 처리기가 이게 사용자가
+  // 직접 누른 로그아웃이라는 걸 알아야 한다(안 그러면 "로그인이 만료됐다"는 안내가 뜬다).
+  me = null;
   await sb.auth.signOut();
   clearCredentials();
+  resetToLoginScreen();
+}
+
+// 로그인 화면으로 되돌리며 교사 화면 상태를 비운다(직접 로그아웃·세션 만료 공용).
+function resetToLoginScreen() {
   me = null;
+  if (_calTimer) { clearInterval(_calTimer); _calTimer = null; }
   selectedSchool = null;
   ttTeacherList = [];
   ttTargetTeacherId = null;
@@ -1594,6 +1694,22 @@ async function logout() {
   document.getElementById('tt-view-fab').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
+
+// 🔐 [세션을 잃었을 때] 토큰 갱신이 실패하면(PC에서 비밀번호를 바꿔 모바일 비밀번호가 따라 바뀐 경우 등)
+// supabase-js는 조용히 세션을 지우고 SIGNED_OUT을 쏜다. 예전엔 이걸 안 들어서 화면은 그대로인데
+// 이후 조회가 로그인 없이 나가, RLS에 막혀 "일정이 없습니다"·빈 시간표로 보였다(오류도 안 남).
+// 로그인 화면으로 돌려보내고 학교·이름은 채워 둔다.
+sb.auth.onAuthStateChange((event) => {
+  if (event !== 'SIGNED_OUT' || !me) return;   // me가 비어 있으면 직접 누른 로그아웃이다
+  // 🚨 이 콜백 안에서 곧바로 다른 supabase 호출을 하면 내부 잠금에 걸릴 수 있어 한 박자 미룬다.
+  setTimeout(() => {
+    if (!me) return;
+    resetToLoginScreen();
+    const saved = loadCredentials();
+    if (saved) prefillLoginForm(saved);
+    document.getElementById('login-error').textContent = '로그인이 만료되었습니다. 비밀번호를 다시 입력해주세요.';
+  }, 0);
+});
 
 function showApp(user) {
   me = user;
@@ -1650,7 +1766,25 @@ function switchTab(tab, btn) {
   document.getElementById('tt-view-fab').style.display = tab === 'timetable' ? 'flex' : 'none';
   updateClassroomCheckboxVisibility();
   loadTab(tab);
+  // 제출 마감 패널은 캘린더 탭 위에 붙어 있다. 예전엔 로그인 때 한 번만 받아서, 다른 교사가
+  // 마감을 추가·삭제해도 앱을 새로 열기 전까진 그대로였다. 캘린더 탭으로 돌아올 때 다시 받는다
+  // (날짜를 넘길 때는 목록이 안 바뀌므로 받지 않는다).
+  if (tab === 'calendar') _loadDeadlinePanel();
 }
+
+// 설치형 앱은 며칠씩 켜 둔 채로 쓰인다. 다시 화면에 올라올 때 보고 있던 탭과 마감 패널을
+// 새로 받는다 — 백그라운드에 있던 동안 바뀐 일정·조종례가 옛 화면으로 남지 않게.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (me && document.getElementById('app-screen').style.display !== 'none') {
+    loadTab(currentTab);
+    _loadDeadlinePanel();
+  } else if (studentSchool && document.getElementById('student-screen').style.display !== 'none') {
+    if (currentStTab === 'timetable') loadStudentTimetable();
+    if (currentStTab === 'academic')  loadStAcademic();
+    if (currentStTab === 'periods')   loadStPeriods();
+  }
+});
 
 function loadTab(tab) {
   if (tab === 'calendar')  loadCalendar();
@@ -1692,7 +1826,7 @@ function goToday(tab) {
   loadTab(tab);
 }
 function moveMonth(delta) {
-  state.academic.setMonth(state.academic.getMonth() + delta);
+  state.academic = shiftMonth(state.academic, delta);
   loadAcademic();
 }
 function moveWeek(delta) {
@@ -1720,7 +1854,8 @@ async function loadCalendar() {
   const schoolId = me.user_metadata.school_id;
   const teacherId = me.user_metadata.teacher_id;
 
-  const [acRes, calRes, ttRes, schRes, taskRes, roomRes, progRes] = await Promise.all([
+  const seq = beginLoad('calendar');
+  const { results, error } = await fetchAll([
     sb.from('academic_calendar').select('*')
       .eq('school_id', schoolId).eq('event_date', dateStr).order('order_idx'),
     sb.from('my_calendar').select('*')
@@ -1733,8 +1868,11 @@ async function loadCalendar() {
     sb.from('daily_schedules').select('period_num,start_time,end_time,display_order,target_grade,event_title,event_short_name,is_separate,alt_day')
       .eq('school_id', schoolId).eq('target_date', dateStr).gt('period_num', 0)
       .order('display_order'),
+    // 이 화면에 필요한 건 "그날 메모"와 "할 일이 하나라도 있나"(체크리스트 배지)뿐이다.
+    // 예전엔 날짜를 넘길 때마다 지난 메모까지 전부 받아 와서 쓰는 만큼 무거워졌다.
     sb.from('personal_tasks').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
+      .or(`task_type.eq.todo,and(task_type.eq.memo,date.eq.${dateStr})`)
       .order('sort_order', { nullsFirst: true }),
     // 🏫 [공용교실 예약] 원본이 아니라 서버가 이미 계산해둔 결과(날짜·교사·교시·교실명·시각)만
     // 받는다 — 학년별 시각 매칭 같은 어려운 판정은 서버(routes/timetable.js)에서 끝내고 온다.
@@ -1747,6 +1885,9 @@ async function loadCalendar() {
     sb.from('daily_timetable_progress').select('instance_id,content')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId)).eq('target_date', dateStr),
   ]);
+  if (isStale('calendar', seq)) return;
+  if (error) { console.error('[캘린더] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadCalendar()'); return; }
+  const [acRes, calRes, ttRes, schRes, taskRes, roomRes, progRes] = results;
 
   const academics   = acRes.data   || [];
   const personalEvs = calRes.data  || [];
@@ -2195,8 +2336,12 @@ async function loadAcademic() {
   const lastDay = new Date(year, month+1, 0).getDate();
   const end   = `${year}-${p2(month+1)}-${p2(lastDay)}`;
 
-  const { data: events } = await sb.from('academic_calendar')
-    .select('*').eq('school_id', me.user_metadata.school_id).gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx');
+  const seq = beginLoad('academic');
+  const { results, error } = await fetchAll([sb.from('academic_calendar')
+    .select('*').eq('school_id', me.user_metadata.school_id).gte('event_date', start).lte('event_date', end).order('event_date').order('order_idx')]);
+  if (isStale('academic', seq)) return;
+  if (error) { console.error('[학사일정] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadAcademic()'); return; }
+  const events = results[0].data;
 
   // 날짜→이벤트 맵
   const eventMap = {};
@@ -2281,10 +2426,12 @@ async function loadPeriods() {
   document.getElementById('periods-date-label').textContent = dateLabel(d);
   const el = document.getElementById('periods-content');
 
-  const { data } = await sb.from('daily_schedules')
-    .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order');
-
-
+  const seq = beginLoad('periods');
+  const { results, error } = await fetchAll([sb.from('daily_schedules')
+    .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order')]);
+  if (isStale('periods', seq)) return;
+  if (error) { console.error('[일과] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadPeriods()'); return; }
+  const data = results[0].data;
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
@@ -2621,6 +2768,9 @@ function onTtClassChange() {
 
 async function loadClassTtForTeacher() {
   const el = document.getElementById('timetable-content');
+  // 교사별 시간표(loadTimetable)와 같은 자리에 그리므로 같은 키를 쓴다 — 보기를 바꾸는 순간
+  // 진행 중이던 다른 보기 조회가 뒤늦게 덮지 않게.
+  const seq = beginLoad('timetable');
   if (!ttClass.grade || !ttClass.classNum) {
     el.innerHTML = '<div style="background:white;padding:48px 24px;text-align:center;color:#ccc;font-size:14px;">학년과 반을 선택해주세요.</div>';
     return;
@@ -2634,7 +2784,7 @@ async function loadClassTtForTeacher() {
   document.getElementById('timetable-week-label').textContent =
     `${p2(days[0].getMonth()+1)}.${p2(days[0].getDate())} ~ ${p2(days[4].getMonth()+1)}.${p2(days[4].getDate())}`;
 
-  const [ttRes, schRes, acRes] = await Promise.all([
+  const { results, error } = await fetchAll([
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).in('target_date', dates)
       .eq('grade', ttClass.grade).eq('class_num', ttClass.classNum),
@@ -2643,6 +2793,9 @@ async function loadClassTtForTeacher() {
     sb.from('academic_calendar').select('event_date,content,color')
       .eq('school_id', schoolId).in('event_date', dates),
   ]);
+  if (isStale('timetable', seq)) return;
+  if (error) { console.error('[학급 시간표] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadTimetable()'); return; }
+  const [ttRes, schRes, acRes] = results;
 
   const allInst   = normalizeInstances(ttRes.data || []);
   const allScheds = schRes.data || [];
@@ -2737,7 +2890,8 @@ async function loadTimetable() {
 
   const el = document.getElementById('timetable-content');
 
-  const [ttRes, schRes, acRes] = await Promise.all([
+  const seq = beginLoad('timetable');
+  const { results, error } = await fetchAll([
     // 내 수업 + 내 결강 슬롯을 보강하는 타인의 인스턴스(changed_user_id = me) 함께 조회
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).in('target_date', dates)
@@ -2747,6 +2901,9 @@ async function loadTimetable() {
     sb.from('academic_calendar').select('event_date,content,color')
       .eq('school_id', schoolId).in('event_date', dates),
   ]);
+  if (isStale('timetable', seq)) return;
+  if (error) { console.error('[시간표] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadTimetable()'); return; }
+  const [ttRes, schRes, acRes] = results;
 
   const allInst   = normalizeInstances(ttRes.data || []);
   const allScheds = schRes.data || [];
@@ -3389,26 +3546,33 @@ async function loadMorning() {
   const el = document.getElementById('morning-content');
 
   const grade = state.morningGrade;
-  const { data } = await sb.from('announcements')
+  const seq = beginLoad('morning');
+  const { results, error } = await fetchAll([sb.from('announcements')
     .select('*').eq('school_id', me.user_metadata.school_id).eq('date', fmt(d))
     .in('target_grade', [grade, '전학년'])
-    .order('id');
+    .order('id')]);
+  if (isStale('morning', seq)) return;
+  if (error) { console.error('[조종례] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadMorning()'); return; }
+  const data = results[0].data;
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('campaign', '이 날의 전달사항이 없습니다.');
     return;
   }
 
+  // 🔒 조종례는 교사가 쓰고 같은 학년 교사 전원의 폰에 뜬다 — 전 칸 이스케이프(PC MorningPopup과 같음).
+  //    예전엔 그대로 넣어서, 글 안의 태그가 읽는 사람의 로그인 권한으로 실행될 수 있었다.
+  //    본문은 평문이라 줄바꿈은 .morning-content의 pre-wrap으로 살린다(PC와 같은 표시).
   el.innerHTML = `<div class="morning-card">` +
     data.map(a => `
       <div class="morning-row">
         <div class="morning-meta">
-          <span class="cat-badge">${a.category || '공지'}</span>
-          <span class="grade-tag">${a.target_grade}</span>
+          <span class="cat-badge">${escHtml(a.category || '공지')}</span>
+          <span class="grade-tag">${escHtml(a.target_grade)}</span>
         </div>
-        <div class="morning-title">${a.title}</div>
-        ${a.content ? `<div class="morning-content">${a.content}</div>` : ''}
-        <div class="morning-author">${a.author_name || ''}</div>
+        <div class="morning-title">${escHtml(a.title)}</div>
+        ${a.content ? `<div class="morning-content">${escHtml(a.content)}</div>` : ''}
+        <div class="morning-author">${escHtml(a.author_name || '')}</div>
       </div>`).join('') + `</div>`;
 }
 
@@ -3430,11 +3594,15 @@ async function _loadDeadlinePanel() {
   const dFrom  = fmt(addDays(new Date(), -30));
   const dUntil = fmt(addDays(new Date(),  14));
 
-  const { data } = await sb.from('my_calendar').select('internal_id, title, date')
+  const seq = beginLoad('deadline');
+  const { results, error } = await fetchAll([sb.from('my_calendar').select('internal_id, title, date')
     .eq('school_id', schoolId).eq('teacher_id', teacherId).eq('type', 'deadline')
-    .gte('date', dFrom).lte('date', dUntil).order('date', { ascending: true });
+    .gte('date', dFrom).lte('date', dUntil).order('date', { ascending: true })]);
+  if (isStale('deadline', seq)) return;
+  // 보조 패널이라 실패하면 전에 그린 목록을 그대로 두고 로그만 남긴다 — 다음 새로고침 때 다시 받는다.
+  if (error) { console.error('[제출 마감] 조회 실패:', error); return; }
 
-  const items = data || [];
+  const items = results[0].data || [];
   const countEl   = document.getElementById('cdp-count');
   const bodyEl    = document.getElementById('cdp-body');
   const chevronEl = document.getElementById('cdp-chevron');
@@ -3452,7 +3620,7 @@ async function _loadDeadlinePanel() {
       const dClass = diff === 0 ? 'cdp-dday-today' : diff < 0 ? 'cdp-dday-past' : '';
       return `<div class="cdp-item">
         <span class="cdp-dday ${dClass}">${dLabel}</span>
-        <span class="cdp-item-title">${item.title}</span>
+        <span class="cdp-item-title">${escHtml(item.title)}</span>
       </div>`;
     }).join('');
   }
@@ -3478,12 +3646,15 @@ function _calClToggle() {
 async function _calClLoad() {
   const list = document.getElementById('cal-cl-list');
   if (!list || !me) return;
-  const { data } = await sb.from('personal_tasks').select('*')
+  const seq = beginLoad('checklist');
+  const { results, error } = await fetchAll([sb.from('personal_tasks').select('*')
     .eq('school_id', me.user_metadata.school_id)
     .eq('teacher_id', String(me.user_metadata.teacher_id))
     .eq('task_type', 'todo')
-    .order('sort_order', { nullsFirst: true });
-  const todos = data || [];
+    .order('sort_order', { nullsFirst: true })]);
+  if (isStale('checklist', seq)) return;
+  if (error) { console.error('[할 일] 조회 실패:', error); list.innerHTML = loadErrorHtml('_calClLoad()'); return; }
+  const todos = results[0].data || [];
   if (todos.length === 0) {
     list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:24px;">할 일이 없습니다</div>';
     return;
