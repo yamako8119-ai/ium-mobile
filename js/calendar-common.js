@@ -122,8 +122,29 @@
     return list;
   }
 
+  // ── 임장 정/부 감독 뱃지 ───────────────────────────────────────
+  // 배포 때 캘린더 사본(Schedules.extra_info.class_str)에 역할이 "1-1(정)"처럼 글자로 붙어 온다
+  // (routes/supervision.js buildSupervisionRoleSuffix). 이미 배포된 것도 그대로 보이도록 저장
+  // 형식은 두고, 그리는 쪽에서 떼어 동그란 뱃지로 바꾼다. 역할이 붙는 규칙(같은 열에 부가 한
+  // 명이라도 있으면 그 열 전원에 정/부)은 서버가 정한다.
+  function splitSupervisionRole(classStr) {
+    const s = String(classStr == null ? '' : classStr);
+    const m = /^(.*?)\((정|부)\)$/.exec(s);
+    return m ? { cls: m[1], role: m[2] } : { cls: s, role: '' };
+  }
+  const ROLE_BADGE_BG = { '정': '#7c3aed', '부': '#f59e0b' };
+  function supervisionRoleBadge(role) {
+    if (!ROLE_BADGE_BG[role]) return '';
+    return '<span title="' + role + '감독" style="display:inline-flex;align-items:center;justify-content:center;'
+      + 'width:1.45em;height:1.45em;border-radius:50%;background:' + ROLE_BADGE_BG[role] + ';color:#fff;'
+      + 'font-size:0.8em;font-weight:800;line-height:1;margin-left:4px;vertical-align:middle;flex-shrink:0;opacity:1;">'
+      + role + '</span>';
+  }
+
   const api = {
     escapeHtml: escapeHtml,
+    splitSupervisionRole: splitSupervisionRole,
+    supervisionRoleBadge: supervisionRoleBadge,
     isHolidayColor: isHolidayColor,
     HOLIDAY_COLORS: HOLIDAY_COLORS,
     toMins: toMins,
