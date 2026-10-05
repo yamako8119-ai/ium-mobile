@@ -2293,7 +2293,8 @@ function renderCalendarGrid(el, { academics, events, otherEvents = [], allDayEvs
     const wrap = document.createElement('div');
     wrap.className = 'tg-mint-wrap';
     wrap.style.top = (calcY(clampedMins) - 8) + 'px';
-    const timeStr = (!memo.time || memo.time === '00:00') ? '종일' : memo.time;
+    // 0시대 메모는 방문 예약의 "시간 미정" 메모뿐이다(PC 메모 입력의 시 목록엔 0시가 없고, 미정 메모가 겹치면 00:01처럼 비켜 앉는다)
+    const timeStr = (!memo.time || h === 0) ? '미정' : memo.time;
     const safe = escHtml(memo.content);
     wrap.innerHTML = `<div class="tg-mint-pin"></div>
       <div class="tg-mint-popover"><span style="opacity:.75;font-size:11px;">${timeStr}</span><br>${safe}</div>`;

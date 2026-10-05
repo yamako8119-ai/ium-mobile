@@ -80,6 +80,50 @@
     return { start: start, end: end };
   }
 
+  // ── 메모 시각 선택지 ──────────────────────────────────────────
+  // 메모 입력의 시·분 목록을 그날 캘린더에 보이는 범위(rangeFromWorkHours → expandRange)에 맞춘다 —
+  // 메모 점은 범위 밖 시각이면 맨 위/맨 아래로 붙어 그려지므로, 적힌 시각과 점 위치가 어긋나지 않게
+  // 화면 안의 시각만 고르게 한다. 예전엔 08~18시·00~55분 고정이라 출근이 이른 학교는 맨 위 줄에 못 달았다.
+  //  · 시: 범위 시작의 시 ~ 범위 끝의 시. 07:30~18:00이면 07~18시.
+  //  · 분: 첫 시는 범위 시작 분부터(07:30 시작 → 07시는 30~55분), 끝 시는 범위 끝 분까지(18:00 끝 → 18시는 00분만).
+  //  · 0시는 넣지 않는다 — 0시대 메모는 방문 예약의 "시간 미정" 메모 전용이라 화면에 "미정"으로 보인다.
+  //  · keep = 수정 중인 메모의 원래 시각 {hour, min}. 목록 밖이어도(그 사이 범위가 바뀌었거나 미정 메모,
+  //    1분씩 비켜 앉은 00:01 등) 그 시각만은 그대로 고를 수 있게 덧붙인다 — 없으면 셀렉트가 빈 값이 돼
+  //    저장할 때 시각이 깨진다.
+  // 반환은 [{value, label}] (value는 두 자리 문자열). 시를 바꿀 때마다 memoMinuteOptions를 다시 불러 분을 채운다.
+  function padTwo(n) { return String(n).padStart(2, '0'); }
+  function memoHourBounds(range) {
+    const first = Math.max(1, Math.floor(range.start / 60));
+    const last  = Math.max(first, Math.min(23, Math.floor(range.end / 60)));
+    return { first: first, last: last };
+  }
+  function memoHourOptions(range, keep) {
+    const b = memoHourBounds(range);
+    const hours = [];
+    for (let h = b.first; h <= b.last; h++) hours.push(h);
+    if (keep && Number.isInteger(keep.hour) && hours.indexOf(keep.hour) < 0) {
+      hours.push(keep.hour); hours.sort(function (a, c) { return a - c; });
+    }
+    return hours.map(function (h) { return { value: padTwo(h), label: h === 0 ? '미정' : padTwo(h) }; });
+  }
+  function memoMinuteOptions(range, hour, keep) {
+    const b = memoHourBounds(range);
+    const mins = [];
+    if (hour >= b.first && hour <= b.last) {
+      const from = hour === Math.floor(range.start / 60) ? range.start % 60 : 0;
+      const to   = hour === Math.floor(range.end / 60) ? range.end % 60 : 59;
+      for (let m = 0; m < 60; m += 5) if (m >= from && m <= to) mins.push(m);
+    } else if (hour !== 0) {
+      // 범위 밖 시(수정 중인 메모의 원래 시) — 어디든 화면 끝에 붙어 그려지므로 분은 막지 않는다
+      for (let m = 0; m < 60; m += 5) mins.push(m);
+    }
+    if (keep && keep.hour === hour && Number.isInteger(keep.min) && mins.indexOf(keep.min) < 0) {
+      mins.push(keep.min); mins.sort(function (a, c) { return a - c; });
+    }
+    if (mins.length === 0) mins.push(0);
+    return mins.map(function (m) { return { value: padTwo(m), label: padTwo(m) }; });
+  }
+
   // ── 겹치는 일정의 컬럼 배치 ───────────────────────────────────
   // 같은 시간대에 일정이 여러 개면 가로로 나눠 놓는다.
   //  1) 시작 시각순으로 정렬(같으면 긴 것 먼저 — 긴 일정이 왼쪽에 오는 게 읽기 좋다)
@@ -150,6 +194,8 @@
     toMins: toMins,
     rangeFromWorkHours: rangeFromWorkHours,
     expandRange: expandRange,
+    memoHourOptions: memoHourOptions,
+    memoMinuteOptions: memoMinuteOptions,
     layoutTracks: layoutTracks,
   };
   root.CalendarCommon = api;
