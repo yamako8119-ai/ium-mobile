@@ -860,7 +860,7 @@ function prefillLoginForm(saved) {
     document.getElementById('school-input').classList.add('has-value');
     if (saved.schoolRegion) {
       const sel = document.getElementById('region-select');
-      sel.innerHTML = `<option value="${school.id}">${saved.schoolRegion}</option>`;
+      sel.innerHTML = `<option value="${escHtml(school.id)}">${escHtml(saved.schoolRegion)}</option>`;
       document.getElementById('region-group').style.display = 'block';
     }
   }
@@ -1111,7 +1111,7 @@ async function loadStAcademic() {
       dayEvents.forEach(ev => {
         const color = ev.color || '#95a5a6';
         const bg = color + '22';
-        html += `<span class="event-pill" style="color:${color};background:${bg};">${ev.content}</span>`;
+        html += `<span class="event-pill" style="color:${escHtml(color)};background:${escHtml(bg)};">${escHtml(ev.content)}</span>`;
       });
       html += '</td>';
     }
@@ -1147,7 +1147,7 @@ async function loadStPeriods() {
   if (fullDayRow) {
     el.innerHTML = `<div class="period-card">
       <div class="period-row" style="background:#e8fcf0;">
-        <div class="p-num" style="color:#15803d;">${fullDayRow.event_title}</div>
+        <div class="p-num" style="color:#15803d;">${escHtml(fullDayRow.event_title)}</div>
         <div class="p-time" style="color:#15803d;">${fullDayRow.start_time} ~ ${fullDayRow.end_time}</div>
         <div class="p-event"></div>
       </div>
@@ -1181,7 +1181,7 @@ async function loadStPeriods() {
           t += `<div class="period-row">
             <div class="p-num">${i + 1}교시</div>
             <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
-            <div class="p-event">${r.event_title || ''}</div>
+            <div class="p-event">${escHtml(r.event_title || '')}</div>
           </div>`;
           if (i < rows.length - 1) {
             const gap = toMins(rows[i + 1].start_time) - toMins(r.end_time);
@@ -1241,7 +1241,7 @@ async function loadStPeriods() {
     html += `<div class="period-row">
       <div class="p-num">${i + 1}교시</div>
       <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
-      <div class="p-event">${r.event_title || ''}</div>
+      <div class="p-event">${escHtml(r.event_title || '')}</div>
     </div>`;
     if (i < displayRows.length - 1) {
       const gap = toMins(displayRows[i + 1].start_time) - toMins(r.end_time);
@@ -1323,7 +1323,7 @@ async function loadStudentTimetable() {
     if (fullDay) {
       const evT = fullDay.event_short_name || fullDay.event_title;
       spanCells[dStr] = `<td rowspan="${effMax}" class="tt-mc st-cell-event" style="text-align:center;vertical-align:middle;padding:4px;">
-        <span class="st-sub" style="writing-mode:vertical-rl;text-orientation:mixed;">${evT}</span></td>`;
+        <span class="st-sub" style="writing-mode:vertical-rl;text-orientation:mixed;">${escHtml(evT)}</span></td>`;
     }
   });
   // 휴업일 오버라이드
@@ -1385,7 +1385,7 @@ function spanTodayCls(dStr, todayStr, spanRows, todayMax) {
 
 function buildHolidayCell(rows, name) {
   return `<td rowspan="${rows}" class="tt-mc tt-holiday-cell" style="text-align:center;vertical-align:middle;padding:4px;">
-    <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;color:#dc2626;">${name}</span>
+    <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;color:#dc2626;">${escHtml(name)}</span>
   </td>`;
 }
 
@@ -1449,7 +1449,7 @@ function buildStudentCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, show
     const hasSep = periodScheds.some(s => s.is_separate);
     const cls = hasSep ? 'st-cell-event-sep' : 'st-cell-event';
     const evT = periodScheds[0].event_short_name || periodScheds[0].event_title.slice(0, 5);
-    return `<td class="tt-mc ${cls}"><span class="st-sub">${evT}</span></td>`;
+    return `<td class="tt-mc ${cls}"><span class="st-sub">${escHtml(evT)}</span></td>`;
   }
 
   // 이 학년 대상 행사 (특정 학년 대상)
@@ -1459,7 +1459,7 @@ function buildStudentCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, show
   if (gradeEvent) {
     const cls = gradeEvent.is_separate ? 'st-cell-event-sep' : 'st-cell-event';
     const evT = gradeEvent.event_short_name || gradeEvent.event_title.slice(0, 5);
-    return `<td class="tt-mc ${cls}"><span class="st-sub">${evT}</span></td>`;
+    return `<td class="tt-mc ${cls}"><span class="st-sub">${escHtml(evT)}</span></td>`;
   }
 
   // 인스턴스 수집
@@ -1499,11 +1499,11 @@ function buildStudentCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, show
                 : pick.status === 'changed'        ? 'st-cell-changed'
                 : 'st-cell-normal';
   const teacherSpan = showTeacher && pick.teacher_name
-    ? `<span class="st-teacher-nm">${pick.teacher_name}</span>` : '';
+    ? `<span class="st-teacher-nm">${escHtml(pick.teacher_name)}</span>` : '';
   const roomSpan = isShowClassroom() && pick.room_name && pick.status !== 'reinforcement'
-    ? `<span class="st-teacher-nm" style="color:#64748b;">${pick.room_name}</span>` : '';
+    ? `<span class="st-teacher-nm" style="color:#64748b;">${escHtml(pick.room_name)}</span>` : '';
 
-  return `<td class="tt-mc ${cellCls}"><span class="st-sub">${subName}</span>${teacherSpan}${roomSpan}</td>`;
+  return `<td class="tt-mc ${cellCls}"><span class="st-sub">${escHtml(subName)}</span>${teacherSpan}${roomSpan}</td>`;
 }
 
 // ── 초기화 ──
@@ -1580,7 +1580,7 @@ function filterSchools(query) {
 
   const names = [...new Set(filtered.map(s => s.name))];
   dropdown.innerHTML = names.map(name =>
-    `<div class="school-option" onclick='selectSchoolName(${JSON.stringify(name)})'>${name}</div>`
+    `<div class="school-option" onclick="selectSchoolName(${escHtml(JSON.stringify(name))})">${escHtml(name)}</div>`
   ).join('');
   dropdown.style.display = 'block';
 }
@@ -2398,7 +2398,7 @@ async function loadAcademic() {
       dayEvents.forEach(ev => {
         const color = ev.color || '#95a5a6';
         const bg = color + '22';
-        html += `<span class="event-pill" style="color:${color};background:${bg};">${ev.content}</span>`;
+        html += `<span class="event-pill" style="color:${escHtml(color)};background:${escHtml(bg)};">${escHtml(ev.content)}</span>`;
       });
       html += '</td>';
     }
@@ -2453,7 +2453,7 @@ async function loadPeriods() {
   if (fullDayRow) {
     el.innerHTML = `<div class="period-card">
       <div class="period-row" style="background:#e8fcf0;">
-        <div class="p-num" style="color:#15803d;">${fullDayRow.event_title}</div>
+        <div class="p-num" style="color:#15803d;">${escHtml(fullDayRow.event_title)}</div>
         <div class="p-time" style="color:#15803d;">${fullDayRow.start_time} ~ ${fullDayRow.end_time}</div>
         <div class="p-event"></div>
       </div>
@@ -2492,13 +2492,13 @@ async function loadPeriods() {
           const evLabel = r.event_short_name || r.event_title || '';
           if (isEv) {
             t += `<div class="period-row" style="background:#e8fcf0;">
-              <div class="p-num" style="color:#15803d;">${evLabel}</div>
+              <div class="p-num" style="color:#15803d;">${escHtml(evLabel)}</div>
               <div class="p-time" style="color:#15803d;">${r.start_time} ~ ${r.end_time}</div>
               <div class="p-event"></div>
             </div>`;
           } else if (isSepEv) {
             t += `<div class="period-row" style="background:#f3e8ff;">
-              <div class="p-num" style="color:#6b21a8;">${evLabel}</div>
+              <div class="p-num" style="color:#6b21a8;">${escHtml(evLabel)}</div>
               <div class="p-time" style="color:#6b21a8;">${r.start_time} ~ ${r.end_time}</div>
               <div class="p-event"></div>
             </div>`;
@@ -2582,13 +2582,13 @@ async function loadPeriods() {
     const evLabel = r.event_short_name || r.event_title || '';
     if (isEv) {
       html += `<div class="period-row" style="background:#e8fcf0;">
-        <div class="p-num" style="color:#15803d;">${evLabel}</div>
+        <div class="p-num" style="color:#15803d;">${escHtml(evLabel)}</div>
         <div class="p-time" style="color:#15803d;">${r.start_time} ~ ${r.end_time}</div>
         <div class="p-event"></div>
       </div>`;
     } else if (isSepEv) {
       html += `<div class="period-row" style="background:#f3e8ff;">
-        <div class="p-num" style="color:#6b21a8;">${evLabel}</div>
+        <div class="p-num" style="color:#6b21a8;">${escHtml(evLabel)}</div>
         <div class="p-time" style="color:#6b21a8;">${r.start_time} ~ ${r.end_time}</div>
         <div class="p-event"></div>
       </div>`;
@@ -2672,13 +2672,15 @@ function renderTtDropdown(matches, q) {
   const dd = document.getElementById('tt-teacher-dropdown');
   if (!matches.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = matches.map((t, i) =>
-    `<div class="tt-search-item" data-id="${t.id}" data-name="${t.name}"
-      onmousedown="selectTtTeacher('${t.id}','${t.name}')">${highlight(t.name, q)}</div>`
+    `<div class="tt-search-item" data-id="${t.id}" data-name="${escHtml(t.name)}"
+      onmousedown="selectTtTeacher('${t.id}',${escHtml(JSON.stringify(String(t.name)))})">${highlight(t.name, q)}</div>`
   ).join('');
   dd.style.display = 'block';
 }
 
 function highlight(name, q) {
+  // 이름·검색어 모두 이스케이프한 뒤 강조한다 — 이름은 서버 동기화 값이라 HTML로 그대로 넣으면 안 된다
+  name = escHtml(name); q = escHtml(q);
   return name.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'g'), '<em>$1</em>');
 }
 
@@ -2858,7 +2860,7 @@ async function loadClassTtForTeacher() {
     if (fullDay) {
       const evT = fullDay.event_short_name || fullDay.event_title;
       spanCells[dStr] = `<td rowspan="${effMax}" class="tt-mc st-cell-event" style="text-align:center;vertical-align:middle;padding:4px;">
-        <span class="st-sub" style="writing-mode:vertical-rl;text-orientation:mixed;">${evT}</span></td>`;
+        <span class="st-sub" style="writing-mode:vertical-rl;text-orientation:mixed;">${escHtml(evT)}</span></td>`;
     }
   });
   const holidayRows = {};
@@ -2977,7 +2979,7 @@ async function loadTimetable() {
       const evT = fullDay.event_short_name || fullDay.event_title;
       spanCells[dStr] = `<td rowspan="${effMax}" class="tt-mc tt-c-event"
         style="text-align:center;vertical-align:middle;padding:4px;">
-        <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;color:#15803d;">${evT}</span>
+        <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;color:#15803d;">${escHtml(evT)}</span>
       </td>`;
     }
   });
@@ -3060,7 +3062,7 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
     if (r.isAllGradeEvent && r.eventSched) {
       // 모바일은 좁은 칸이라 행사명을 4글자까지 쓴다(PC 화면은 3글자) — 표시 규칙이라 여기 남긴다.
       const allGradeShort = r.eventSched.event_short_name || r.eventSched.event_title.slice(0, 4);
-      return `<td class="tt-mc tt-c-event"><div class="tt-bb"><div class="tt-bt">${allGradeShort}</div></div></td>`;
+      return `<td class="tt-mc tt-c-event"><div class="tt-bb"><div class="tt-bt">${escHtml(allGradeShort)}</div></div></td>`;
     }
     return `<td class="tt-c-empty"></td>`;
   }
@@ -3084,7 +3086,7 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
       const ds = rs.length > 5 ? rs.slice(0, 4) + '..' : rs;
       const isFixed = item.subject_name.startsWith('fixed_');
       const st = isFixed ? '' : (item.grade > 0 ? `${item.grade}-${item.class_num}` : '');
-      return `<div class="tt-bb"><div class="tt-bt">${ds}${bdg}</div>${st ? `<div class="tt-bs">${st}</div>` : ''}</div>`;
+      return `<div class="tt-bb"><div class="tt-bt">${escHtml(ds)}${bdg}</div>${st ? `<div class="tt-bs">${escHtml(st)}</div>` : ''}</div>`;
     }).join('');
     return `<td class="tt-mc tt-c-conflict">${blocksHtml}</td>`;
   }
@@ -3117,9 +3119,9 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
   const roomText = isShowClassroom() && main.room_name && !isSup && !isReinf ? main.room_name : '';
 
   return `<td class="${cellCls}"><div class="tt-bb">
-    <div class="tt-bt">${dispSub}${badge}</div>
-    ${subText ? `<div class="tt-bs">${subText}</div>` : ''}
-    ${roomText ? `<div class="tt-bs" style="color:#64748b;">${roomText}</div>` : ''}
+    <div class="tt-bt">${escHtml(dispSub)}${badge}</div>
+    ${subText ? `<div class="tt-bs">${escHtml(subText)}</div>` : ''}
+    ${roomText ? `<div class="tt-bs" style="color:#64748b;">${escHtml(roomText)}</div>` : ''}
   </div></td>`;
 }
 
@@ -3510,7 +3512,7 @@ function showFcFreeSheet() {
   body.innerHTML = freeTeachers.length > 0
     ? freeTeachers.map(t => {
         const sel = fcSelectedTeacherIds.has(t.id) ? ' sel' : '';
-        return `<span class="fc-free-name-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${t.name}</span>`;
+        return `<span class="fc-free-name-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${escHtml(t.name)}</span>`;
       }).join('')
     : `<span style="color:#94a3b8;font-size:13px;">공강 교사가 없습니다.</span>`;
 
@@ -3572,7 +3574,7 @@ function renderFcTeacherList() {
     ? list.map(t => {
         const sel = fcSelectedTeacherIds.has(t.id) ? ' sel' : '';
         const mark = t.id === myId ? `<span class="fc-me-mark">나</span>` : '';
-        return `<span class="fc-teacher-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${t.name}${mark}</span>`;
+        return `<span class="fc-teacher-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${escHtml(t.name)}${mark}</span>`;
       }).join('')
     : `<div style="width:100%;padding:24px;text-align:center;color:#aaa;font-size:13px;">검색 결과가 없습니다.</div>`;
 }
