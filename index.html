@@ -1867,7 +1867,7 @@ async function loadCalendar() {
       .eq('school_id', schoolId).eq('event_date', dateStr).order('order_idx'),
     sb.from('my_calendar').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
-      .eq('date', dateStr).in('type', ['event','routine','personal'])
+      .eq('date', dateStr).in('type', ['event','routine','personal','afterschool'])
       .order('start_time', { nullsFirst: true }),
     sb.from('daily_timetable').select('*')
       .eq('school_id', schoolId).eq('teacher_id', String(teacherId))
@@ -2096,6 +2096,14 @@ async function loadCalendar() {
 
   const allDayEvs = [];
   personalEvs.forEach(e => {
+    // 🏫 방과후 — 정규 수업과 같은 블록, 태그 "방과후"(PC 캘린더의 "(방과후)"와 같은 뜻). 휴업일에는 수업처럼 빠진다.
+    if (e.type === 'afterschool') {
+      if (isHoliday || !e.start_time || !e.end_time) return;
+      const [aH, aM] = e.start_time.split(':').map(Number), [bH2, bM2] = e.end_time.split(':').map(Number);
+      events.push({ type: 'class', status: 'normal', isSup: false, isFixed: true, is_personal: false, afterschool: true,
+        title: e.title, start: e.start_time.slice(0, 5), end: e.end_time.slice(0, 5), startMins: aH * 60 + aM, endMins: bH2 * 60 + bM2 });
+      return;
+    }
     if (!e.start_time) { allDayEvs.push(e); return; }
     const [sH, sM] = e.start_time.split(':').map(Number);
     const [eH, eM] = (e.end_time || e.start_time).split(':').map(Number);
@@ -2261,7 +2269,8 @@ function renderCalendarGrid(el, { academics, events, otherEvents = [], allDayEvs
       // 🩺 [슬래시 사유] "행사명 (출장)" — PC 캘린더(messenger/WeeklyPopup)와 같은 형식.
       if (ev.supervisionReason) titleStr += ` (${escHtml(ev.supervisionReason)})`;
       if (ev._reservedRoom) titleStr += ' ' + roomBadge(ev._reservedRoom);
-      if (ev.is_personal && ev.short_label)   sub = `<span class="tg-blk-tag" style="color:#0071e3;">${escHtml(ev.short_label)}</span>`;
+      if (ev.afterschool)                      sub = '<span class="tg-blk-tag" style="color:#0e7490;">방과후</span>';
+      else if (ev.is_personal && ev.short_label) sub = `<span class="tg-blk-tag" style="color:#0071e3;">${escHtml(ev.short_label)}</span>`;
       else if (ev.status === 'changed')        sub = '<span class="tg-blk-tag" style="color:#e65100;">변경</span>';
       else if (ev.status === 'reinforcement')  sub = '<span class="tg-blk-tag" style="color:#e11d48;">보강</span>';
       // 🩺 [슬래시 사유] 사유로 빠진 행은 임장 지도가 아니므로 "임장" 태그를 안 붙인다.
