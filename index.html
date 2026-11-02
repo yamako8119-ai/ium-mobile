@@ -3049,7 +3049,7 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
 
   // 🔗 [공용 판정기] PC 시간표 뷰어(buildCell)와 완전히 같은 resolveCell을 쓴다
   // (js/timetable-cell.js). 예전엔 모바일이 판정을 따로 갖고 있어서 PC를 고쳐도 여기가
-  // 안 따라왔다 — 고정수업 보강 숨김·임장 3분기·교시 매핑 폴백이 전부 빠져 있었다.
+  // 안 따라왔다 — 이동수업 보강 숨김·임장 3분기·교시 매핑 폴백이 전부 빠져 있었다.
   // 🚨 판정 규칙을 고칠 일이 생기면 여기가 아니라 그 모듈을 고쳐야 한다.
   const r = resolveCell({
     instances: usable,
@@ -3125,7 +3125,8 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
 
   const isFixed = main.subject_name.startsWith('fixed_');
   const subText = isFixed ? '' : (main.is_personal ? (main.short_label || '') : (main.grade > 0 ? `${main.grade}-${main.class_num}` : ''));
-  const roomText = isShowClassroom() && main.room_name && !isSup && !isReinf ? main.room_name : '';
+  // 🚶 이동수업 장소(고교 분반 교실)는 교과교실제·교실 표시 체크와 상관없이 늘. 일반 수업 교실은 예전처럼 둘 다 켜졌을 때만.
+  const roomText = main.room_name && !isSup && !isReinf && (isFixed || isShowClassroom()) ? main.room_name : '';
 
   return `<td class="${cellCls}"><div class="tt-bb">
     <div class="tt-bt">${escHtml(dispSub)}${badge}</div>
@@ -3138,7 +3139,7 @@ function buildMobileCell(dateStr, rowOrder, allInst, allScheds, hiddenIds, teach
 // PC의 TimetableViewerPopup.html "공강 시간 확인" 모달과 같은 개념을 모바일에 이식한다.
 // 🔗 [공용 판정기] 바쁨/공강 판정은 여기서 새로 만들지 않고 js/timetable-cell.js의
 // resolveCell·computeTimeGroups·buildHiddenIds를 그대로 쓴다 — buildMobileCell 위 주석과
-// 같은 이유(고정수업 결/보강 숨김·임장 3분기·학년별 교시 시각 등 판정 규칙이 한 곳에만 있어야
+// 같은 이유(이동수업 결/보강 숨김·임장 3분기·학년별 교시 시각 등 판정 규칙이 한 곳에만 있어야
 // PC를 고쳐도 여기가 저절로 따라온다).
 // 🚨 [행 수 상한] Supabase(PostgREST)는 한 응답에 최대 1000행만 준다 — 넘으면 오류가 아니라
 // 조용히 잘린다. 잘린 수업은 "없는 수업"이 되어 그 교사가 공강으로 잡히므로, 이 기능에서는

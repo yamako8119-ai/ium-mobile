@@ -340,14 +340,14 @@
       }
     }
 
-    // ── 7. 고정 수업(fixed_) 결강 처리 ──────────────────────────
-    // 고정수업(선택수업 등)은 학급 수만큼 행이 있는데 결강은 그중 대표 한 행에만
+    // ── 7. 이동수업(fixed_) 결강 처리 ──────────────────────────
+    // 이동수업(주제선택 등)은 학급 수만큼 행이 있는데 결강은 그중 대표 한 행에만
     // 표시된다. 같은 subject_name의 vacated/absent가 있으면 나머지 normal도 숨긴다.
     const vacatedFixedSubs = new Set(
       raw.filter(i => (i.status === 'vacated' || i.status === 'absent') && i.subject_name.startsWith('fixed_'))
         .map(i => i.subject_name)
     );
-    // 교사 뷰 전용: 이 교사가 changed_user_id인 reinforcement가 있으면(= 고정 수업 보강 지정됨)
+    // 교사 뷰 전용: 이 교사가 changed_user_id인 reinforcement가 있으면(= 이동수업 보강 지정됨)
     const reinforcedFixedSubs = isTeacher ? new Set(
       instances.filter(i =>
         i.status === 'reinforcement' &&
@@ -386,7 +386,7 @@
       )
     )));
 
-    // ── 10. 임장 우선 정렬 + 합동 고정수업 중복 제거 ────────────
+    // ── 10. 임장 우선 정렬 + 합동 창체 시간 중복 제거 ────────────
     // 🩺 [정/부 감독] 한 학급에 임장 인스턴스가 2개 이상(정+부)이면 id가 가장 작은(=정)
     // 것을 대표로 쓴다 — routes/supervision.js의 배포 라우트가 정을 항상 부보다 낮은
     // id로 저장하도록 보장한다.
