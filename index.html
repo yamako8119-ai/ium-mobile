@@ -950,13 +950,11 @@ async function showStudentApp(school) {
 }
 
 async function loadStudentClasses(schoolId) {
-  // 날짜 범위 없이 조회 (RLS anon 허용 여부 및 컬럼 타입 문제 회피)
-  const { data, error } = await sb.from('daily_timetable')
-    .select('grade, class_num')
-    .eq('school_id', schoolId)
-    .limit(3000);
+  // 🔒 [2026-11-16] 학생(로그인 없음)은 daily_timetable을 직접 못 읽는다 — 교사 실명·결강 기록까지
+  //    전 학교분이 열려 있었다. 학년·반 쌍만 돌려주는 함수를 거친다(supabase/sql/2026-11-16-mobile-anon-lockdown.sql).
+  const { data, error } = await sb.rpc('student_classes', { p_school_id: schoolId });
 
-  if (error) { console.error('[Student] daily_timetable 조회 실패:', error); return false; }
+  if (error) { console.error('[Student] 학급 목록 조회 실패:', error); return false; }
   if (!data || data.length === 0) { console.warn('[Student] 데이터 없음 (school_id:', schoolId, ')'); return true; }
 
   const seen = new Set();
@@ -1284,11 +1282,11 @@ async function loadStudentTimetable() {
   el.innerHTML = '<div style="padding:24px;text-align:center;color:#ccc;">불러오는 중...</div>';
 
   const { results, error } = await fetchAll([
-    sb.from('daily_timetable').select('*')
-      .eq('school_id', studentSchool.id)
-      .in('target_date', dates)
-      .eq('grade', studentState.grade)
-      .eq('class_num', studentState.classNum),
+    // 🔒 [2026-11-16] 한 학급·한 주·공개 칸만 돌려주는 함수 — 교사 이름·결강자·임장 행은 안 온다.
+    sb.rpc('student_timetable', {
+      p_school_id: studentSchool.id, p_grade: studentState.grade, p_class_num: studentState.classNum,
+      p_from: dates[0], p_to: dates[dates.length - 1],
+    }),
     sb.from('daily_schedules').select('*')
       .eq('school_id', studentSchool.id)
       .in('target_date', dates),
@@ -1643,8 +1641,11 @@ async function login() {
   }
 
   btn.textContent = '로그인 중...';
-  const { data: lookup, error: le } = await sb
-    .from('teacher_lookup').select('username').eq('school_id', school.id).eq('display_name', name).maybeSingle();
+  // 🔒 [2026-11-16] teacher_lookup 표를 직접 열면 전 학교 교사 실명+아이디가 통째로 받아졌다.
+  //    이 학교·이 이름의 아이디 한 건만 돌려주는 함수를 거친다(없으면 null).
+  const { data: lookupName, error: le } = await sb
+    .rpc('mobile_login_username', { p_school_id: school.id, p_name: name });
+  const lookup = lookupName ? { username: lookupName } : null;
 
   if (le) {
     console.error('[로그인] 교사 이름 조회 실패:', le);
