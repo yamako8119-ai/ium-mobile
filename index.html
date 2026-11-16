@@ -1139,7 +1139,7 @@ async function loadStPeriods() {
     .select('*').eq('school_id', studentSchool.id).eq('target_date', fmt(d)).order('display_order')]);
   if (isStale('stPeriods', seq)) return;
   if (error) { console.error('[학생 일과] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadStPeriods()'); return; }
-  const data = results[0].data;
+  const data = cleanSchedRows(results[0].data);
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
@@ -1153,7 +1153,7 @@ async function loadStPeriods() {
     el.innerHTML = `<div class="period-card">
       <div class="period-row" style="background:#e8fcf0;">
         <div class="p-num" style="color:#15803d;">${escHtml(fullDayRow.event_title)}</div>
-        <div class="p-time" style="color:#15803d;">${fullDayRow.start_time} ~ ${fullDayRow.end_time}</div>
+        <div class="p-time" style="color:#15803d;">${escHtml(fullDayRow.start_time)} ~ ${escHtml(fullDayRow.end_time)}</div>
         <div class="p-event"></div>
       </div>
     </div>`;
@@ -1185,7 +1185,7 @@ async function loadStPeriods() {
         rows.forEach((r, i) => {
           t += `<div class="period-row">
             <div class="p-num">${i + 1}교시</div>
-            <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+            <div class="p-time">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
             <div class="p-event">${escHtml(r.event_title || '')}</div>
           </div>`;
           if (i < rows.length - 1) {
@@ -1193,7 +1193,7 @@ async function loadStPeriods() {
             if (gap >= 40) {
               t += `<div class="period-row period-row-lunch">
                 <div class="p-num" style="color:#c2410c;">점심</div>
-                <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${rows[i + 1].start_time}</div>
+                <div class="p-time" style="color:#c2410c;">${escHtml(r.end_time)} ~ ${escHtml(rows[i + 1].start_time)}</div>
                 <div class="p-event"></div>
               </div>`;
             }
@@ -1210,17 +1210,17 @@ async function loadStPeriods() {
         </div>
         <div style="display:flex;gap:6px;">`;
       grades.forEach(g => {
-        html += `<button class="period-grade-btn" onclick="_periodGradeSelect('${uid}','${g}','st-periods-content')">${g}학년</button>`;
+        html += `<button class="period-grade-btn" data-uid="${uid}" data-grade="${escHtml(g)}" onclick="_periodGradeSelect(this.dataset.uid,this.dataset.grade,'st-periods-content')">${escHtml(g)}학년</button>`;
       });
       html += `</div></div>`;
 
       html += `<div id="${uid}_sched" style="display:none;">`;
       grades.forEach(g => {
-        html += `<div id="${uid}_tbl_${g}" style="display:none;">${buildGradeCard(g)}</div>`;
+        html += `<div id="${uid}_tbl_${escHtml(g)}" style="display:none;">${buildGradeCard(g)}</div>`;
       });
       html += `<div style="display:flex;gap:6px;padding:10px 16px 14px;justify-content:center;">`;
       grades.forEach(g => {
-        html += `<button class="period-grade-btn" id="${uid}_btn_${g}" onclick="_periodGradeSelect('${uid}','${g}','st-periods-content')">${g}학년</button>`;
+        html += `<button class="period-grade-btn" id="${uid}_btn_${escHtml(g)}" data-uid="${uid}" data-grade="${escHtml(g)}" onclick="_periodGradeSelect(this.dataset.uid,this.dataset.grade,'st-periods-content')">${escHtml(g)}학년</button>`;
       });
       html += `</div></div>`;
 
@@ -1245,7 +1245,7 @@ async function loadStPeriods() {
   displayRows.forEach((r, i) => {
     html += `<div class="period-row">
       <div class="p-num">${i + 1}교시</div>
-      <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+      <div class="p-time">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
       <div class="p-event">${escHtml(r.event_title || '')}</div>
     </div>`;
     if (i < displayRows.length - 1) {
@@ -1253,7 +1253,7 @@ async function loadStPeriods() {
       if (gap >= 40) {
         html += `<div class="period-row period-row-lunch">
           <div class="p-num" style="color:#c2410c;">점심</div>
-          <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${displayRows[i + 1].start_time}</div>
+          <div class="p-time" style="color:#c2410c;">${escHtml(r.end_time)} ~ ${escHtml(displayRows[i + 1].start_time)}</div>
           <div class="p-event"></div>
         </div>`;
       }
@@ -1300,7 +1300,7 @@ async function loadStudentTimetable() {
   const [ttRes, schRes, acRes] = results;
 
   const allInst   = normalizeInstances(ttRes.data || []);
-  const allScheds = schRes.data || [];
+  const allScheds = cleanSchedRows(schRes.data);
 
   const holidayMap = {};
   (acRes.data || []).forEach(e => {
@@ -1907,7 +1907,7 @@ async function loadCalendar() {
   const academics   = acRes.data   || [];
   const personalEvs = calRes.data  || [];
   const timetable   = ttRes.data   || [];
-  const schedules   = schRes.data  || [];
+  const schedules   = cleanSchedRows(schRes.data);
   const tasks       = taskRes.data || [];
   const roomReservations = roomRes.data || [];
   // 인스턴스 id(= daily_timetable.internal_id)로 붙인다. 서버가 "차시 → 날짜"를 이미 계산해
@@ -2156,6 +2156,25 @@ function escHtml(v) { return CalendarCommon.escapeHtml(v); }
 // 🔒 교사 번호로 쓸 수 있는 글자인가(data-sync의 teacherIdText와 같은 기준). 번호는 조회 조건 글자에 이어
 // 붙으므로, 따옴표·쉼표·괄호가 섞인 값은 명단에 올리지도 고르지도 않는다(2026-11-15 보안 리뷰 라운드 5 2차).
 function isTeacherIdText(v) { return /^[0-9A-Za-z_-]{1,64}$/.test(String(v)); }
+// 🔒 [일과 행 거르기 — 2026-11-16 보안 리뷰 라운드 5 3차] daily_schedules에서 받은 행은 화면에 쓰기 전에 여기를
+// 거친다. 학년은 버튼의 id·조회 글자에, 시각은 화면 글자에 그대로 들어가는데, 예전엔 받은 값을 믿고 실행 코드
+// (onclick) 안에까지 넣었다 — 학년 자리에 `');…//`가 저장돼 있으면 버튼을 누를 때 스크립트가 돌았다.
+// 학년은 'all'·숫자만(아니면 그 행을 버린다), 시각은 'HH:MM' 모양만(아니면 빈 글자), 순서·교시는 숫자로 바꾼다.
+// data-sync(checkScheduleRows)도 같은 기준으로 저장을 막는다 — 여기는 이미 저장된 값에 대한 두 번째 방어선.
+function cleanSchedRows(rows) {
+  const time = v => (v != null && /^\d{1,2}:\d{2}(:\d{2})?$/.test(String(v))) ? String(v) : '';
+  const int = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  return (Array.isArray(rows) ? rows : []).filter(r => {
+    if (!r) return false;
+    if (r.target_grade == null || /^(all|\d{1,2})$/.test(String(r.target_grade))) return true;
+    console.error('[일과] 학년 값이 정해진 모양이 아니라 버림:', String(r.target_grade).slice(0, 20));
+    return false;
+  }).map(r => ({
+    ...r, start_time: time(r.start_time), end_time: time(r.end_time),
+    display_order: int(r.display_order), period_num: int(r.period_num),
+    alt_day: /^[0-9A-Za-z_-]{1,20}$/.test(String(r.alt_day)) ? r.alt_day : 'none',
+  }));
+}
 
 function renderCalendarGrid(el, { academics, events, otherEvents = [], allDayEvs, isCurrentDay, memos = [] }) {
   // ── 캘린더 시간 범위 ─── 분 단위로 들고 있는다(시작이 반 시(:30)일 수 있음: 출근시각 −30분을
@@ -2459,7 +2478,7 @@ async function loadPeriods() {
     .select('*').eq('school_id', me.user_metadata.school_id).eq('target_date', fmt(d)).order('display_order')]);
   if (isStale('periods', seq)) return;
   if (error) { console.error('[일과] 조회 실패:', error); el.innerHTML = loadErrorHtml('loadPeriods()'); return; }
-  const data = results[0].data;
+  const data = cleanSchedRows(results[0].data);
 
   if (!data || data.length === 0) {
     el.innerHTML = emptyHtml('schedule', '이 날의 일과 정보가 없습니다.');
@@ -2474,7 +2493,7 @@ async function loadPeriods() {
     el.innerHTML = `<div class="period-card">
       <div class="period-row" style="background:#e8fcf0;">
         <div class="p-num" style="color:#15803d;">${escHtml(fullDayRow.event_title)}</div>
-        <div class="p-time" style="color:#15803d;">${fullDayRow.start_time} ~ ${fullDayRow.end_time}</div>
+        <div class="p-time" style="color:#15803d;">${escHtml(fullDayRow.start_time)} ~ ${escHtml(fullDayRow.end_time)}</div>
         <div class="p-event"></div>
       </div>
     </div>`;
@@ -2513,19 +2532,19 @@ async function loadPeriods() {
           if (isEv) {
             t += `<div class="period-row" style="background:#e8fcf0;">
               <div class="p-num" style="color:#15803d;">${escHtml(evLabel)}</div>
-              <div class="p-time" style="color:#15803d;">${r.start_time} ~ ${r.end_time}</div>
+              <div class="p-time" style="color:#15803d;">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
               <div class="p-event"></div>
             </div>`;
           } else if (isSepEv) {
             t += `<div class="period-row" style="background:#f3e8ff;">
               <div class="p-num" style="color:#6b21a8;">${escHtml(evLabel)}</div>
-              <div class="p-time" style="color:#6b21a8;">${r.start_time} ~ ${r.end_time}</div>
+              <div class="p-time" style="color:#6b21a8;">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
               <div class="p-event"></div>
             </div>`;
           } else {
             t += `<div class="period-row">
-              <div class="p-num">${r.display_order}교시</div>
-              <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+              <div class="p-num">${escHtml(r.display_order)}교시</div>
+              <div class="p-time">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
               <div class="p-event"></div>
             </div>`;
           }
@@ -2534,7 +2553,7 @@ async function loadPeriods() {
             if (gap >= 40) {
               t += `<div class="period-row period-row-lunch">
                 <div class="p-num" style="color:#c2410c;">점심</div>
-                <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${rows[i + 1].start_time}</div>
+                <div class="p-time" style="color:#c2410c;">${escHtml(r.end_time)} ~ ${escHtml(rows[i + 1].start_time)}</div>
                 <div class="p-event"></div>
               </div>`;
             }
@@ -2552,18 +2571,18 @@ async function loadPeriods() {
         </div>
         <div style="display:flex;gap:6px;">`;
       grades.forEach(g => {
-        html += `<button class="period-grade-btn" onclick="_periodGradeSelect('${uid}','${g}')">${g}학년</button>`;
+        html += `<button class="period-grade-btn" data-uid="${uid}" data-grade="${escHtml(g)}" onclick="_periodGradeSelect(this.dataset.uid,this.dataset.grade)">${escHtml(g)}학년</button>`;
       });
       html += `</div></div>`;
 
       // ② 시간표 섹션
       html += `<div id="${uid}_sched" style="display:none;">`;
       grades.forEach(g => {
-        html += `<div id="${uid}_tbl_${g}" style="display:none;">${buildGradeCard(g)}</div>`;
+        html += `<div id="${uid}_tbl_${escHtml(g)}" style="display:none;">${buildGradeCard(g)}</div>`;
       });
       html += `<div style="display:flex;gap:6px;padding:10px 16px 14px;justify-content:center;">`;
       grades.forEach(g => {
-        html += `<button class="period-grade-btn" id="${uid}_btn_${g}" onclick="_periodGradeSelect('${uid}','${g}')">${g}학년</button>`;
+        html += `<button class="period-grade-btn" id="${uid}_btn_${escHtml(g)}" data-uid="${uid}" data-grade="${escHtml(g)}" onclick="_periodGradeSelect(this.dataset.uid,this.dataset.grade)">${escHtml(g)}학년</button>`;
       });
       html += `</div></div>`;
 
@@ -2603,19 +2622,19 @@ async function loadPeriods() {
     if (isEv) {
       html += `<div class="period-row" style="background:#e8fcf0;">
         <div class="p-num" style="color:#15803d;">${escHtml(evLabel)}</div>
-        <div class="p-time" style="color:#15803d;">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-time" style="color:#15803d;">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
         <div class="p-event"></div>
       </div>`;
     } else if (isSepEv) {
       html += `<div class="period-row" style="background:#f3e8ff;">
         <div class="p-num" style="color:#6b21a8;">${escHtml(evLabel)}</div>
-        <div class="p-time" style="color:#6b21a8;">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-time" style="color:#6b21a8;">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
         <div class="p-event"></div>
       </div>`;
     } else {
       html += `<div class="period-row">
-        <div class="p-num">${r.display_order}교시</div>
-        <div class="p-time">${r.start_time} ~ ${r.end_time}</div>
+        <div class="p-num">${escHtml(r.display_order)}교시</div>
+        <div class="p-time">${escHtml(r.start_time)} ~ ${escHtml(r.end_time)}</div>
         <div class="p-event"></div>
       </div>`;
     }
@@ -2624,7 +2643,7 @@ async function loadPeriods() {
       if (gap >= 40) {
         html += `<div class="period-row period-row-lunch">
           <div class="p-num" style="color:#c2410c;">점심</div>
-          <div class="p-time" style="color:#c2410c;">${r.end_time} ~ ${displayRows[i + 1].start_time}</div>
+          <div class="p-time" style="color:#c2410c;">${escHtml(r.end_time)} ~ ${escHtml(displayRows[i + 1].start_time)}</div>
           <div class="p-event"></div>
         </div>`;
       }
@@ -2858,7 +2877,7 @@ async function loadClassTtForTeacher() {
   const [ttRes, schRes, acRes] = results;
 
   const allInst   = normalizeInstances(ttRes.data || []);
-  const allScheds = schRes.data || [];
+  const allScheds = cleanSchedRows(schRes.data);
 
   const holidayMap = {};
   (acRes.data || []).forEach(e => {
@@ -2966,7 +2985,7 @@ async function loadTimetable() {
   const [ttRes, schRes, acRes] = results;
 
   const allInst   = normalizeInstances(ttRes.data || []);
-  const allScheds = schRes.data || [];
+  const allScheds = cleanSchedRows(schRes.data);
 
   const holidayMap = {};
   (acRes.data || []).forEach(e => {
@@ -3281,7 +3300,7 @@ async function fcLoadWeekData() {
   });
 
   const allInst = normalizeInstances(instRes.flatMap(r => r.data || []));
-  fcAllScheds = schRes.data || [];
+  fcAllScheds = cleanSchedRows(schRes.data);
   fcHolidayMap = {};
   (acRes.data || []).forEach(e => {
     if (isHolidayColor(e.color) && !fcHolidayMap[e.event_date]) fcHolidayMap[e.event_date] = e.content;
