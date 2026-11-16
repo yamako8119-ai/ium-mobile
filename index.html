@@ -13,7 +13,12 @@
   <link rel="apple-touch-icon" href="favicon.png">
   <link rel="icon" href="favicon.png">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 🔒 [2026-11-15 보안 리뷰 라운드 5] 버전을 고정하고 무결성 값(integrity)을 붙인다 — 예전엔 "@2"(최신 2.x)라
+       배포처에서 파일이 바뀌면 그대로 받아 실행했다. 이제 내용이 한 글자라도 다르면 브라우저가 실행하지 않는다.
+       올릴 때: 버전 숫자를 바꾸고, 그 주소의 파일로 값을 다시 계산해 넣는다
+       (openssl dgst -sha384 -binary supabase.js | openssl base64 -A). 값이 틀리면 모바일이 아예 안 열린다. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"
+          integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f5f6f8; color: #1a1a1a; height: 100dvh; overflow: hidden; }
@@ -1514,12 +1519,15 @@ window.onload = async () => {
 
   await loadSchools();
 
+  // 🔒 [2026-11-15 보안 리뷰 라운드 5] 저장값은 세션 확인보다 먼저 읽는다 — 읽을 때 예전 버전이 남긴 평문
+  // 비밀번호를 지우는데, 예전엔 세션이 살아 있으면 여기까지 오지 않아 로그인을 유지하는 휴대폰에는 계속 남았다.
+  const saved = loadCredentials();
+
   // 교사 세션 확인
   const { data: { session } } = await sb.auth.getSession();
   if (session) { showApp(session.user); return; }
 
   // 세션이 없으면(로그아웃했거나 만료) 비밀번호를 다시 받는다 — 학교·이름만 미리 채워 준다.
-  const saved = loadCredentials();
   if (saved) prefillLoginForm(saved);
 
   // 학생 세션 복원
@@ -2145,6 +2153,9 @@ function applyCalRangeFromSchool(school) {
 // 🔗 [공용 판정기] 이스케이프·휴업일·시간범위·컬럼배치는 js/calendar-common.js 하나만 고친다.
 // 얇은 함수로 감싸 호이스팅시킨다 — 스크립트 태그 순서나 선언 위치에 영향받지 않게.
 function escHtml(v) { return CalendarCommon.escapeHtml(v); }
+// 🔒 교사 번호로 쓸 수 있는 글자인가(data-sync의 teacherIdText와 같은 기준). 번호는 조회 조건 글자에 이어
+// 붙으므로, 따옴표·쉼표·괄호가 섞인 값은 명단에 올리지도 고르지도 않는다(2026-11-15 보안 리뷰 라운드 5 2차).
+function isTeacherIdText(v) { return /^[0-9A-Za-z_-]{1,64}$/.test(String(v)); }
 
 function renderCalendarGrid(el, { academics, events, otherEvents = [], allDayEvs, isCurrentDay, memos = [] }) {
   // ── 캘린더 시간 범위 ─── 분 단위로 들고 있는다(시작이 반 시(:30)일 수 있음: 출근시각 −30분을
@@ -2649,7 +2660,7 @@ async function _fetchTtTeacherList() {
   if (!data) return true;
   const seen = new Set();
   ttTeacherList = data
-    .filter(r => r.teacher_id && r.teacher_name && !seen.has(r.teacher_id) && seen.add(r.teacher_id))
+    .filter(r => r.teacher_id && isTeacherIdText(r.teacher_id) && r.teacher_name && !seen.has(r.teacher_id) && seen.add(r.teacher_id))
     .map(r => ({ id: String(r.teacher_id), name: r.teacher_name }))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   return true;
@@ -2681,8 +2692,10 @@ function renderTtDropdown(matches, q) {
   const dd = document.getElementById('tt-teacher-dropdown');
   if (!matches.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = matches.map((t, i) =>
-    `<div class="tt-search-item" data-id="${t.id}" data-name="${escHtml(t.name)}"
-      onmousedown="selectTtTeacher('${t.id}',${escHtml(JSON.stringify(String(t.name)))})">${highlight(t.name, q)}</div>`
+    // 🔒 번호·이름을 실행 코드(onmousedown) 안에 글자로 넣지 않는다 — 속성(data-*)에 두고 거기서 읽는다.
+    // 예전엔 번호를 '${t.id}'로 넣어서, 번호 자리에 `');…//`가 들어오면 그대로 실행됐다(2026-11-15 보안 리뷰 라운드 5 2차).
+    `<div class="tt-search-item" data-id="${escHtml(t.id)}" data-name="${escHtml(t.name)}"
+      onmousedown="selectTtTeacher(this.dataset.id,this.dataset.name)">${highlight(t.name, q)}</div>`
   ).join('');
   dd.style.display = 'block';
 }
@@ -2699,6 +2712,8 @@ function hideTtDropdown() {
 }
 
 function selectTtTeacher(id, name) {
+  // 이 번호는 아래 loadTimetable의 조회 조건 글자에 이어 붙는다 — 번호 모양이 아니면 받지 않는다
+  if (!isTeacherIdText(id)) return;
   ttTargetTeacherId = id;
   document.getElementById('tt-teacher-input').value = name;
   document.getElementById('tt-teacher-clear').style.display = 'block';
@@ -3430,7 +3445,7 @@ function renderFcGrid() {
       }
       if (fullDayEventMap[ds]) {
         if (row === 1) html += `<td rowspan="${maxRows}" class="tt-mc tt-c-event" style="text-align:center;vertical-align:middle;padding:4px;">
-          <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;">${fullDayEventMap[ds]}</span></td>`;
+          <span style="writing-mode:vertical-rl;text-orientation:mixed;font-size:0.9rem;font-weight:900;">${escHtml(fullDayEventMap[ds])}</span></td>`;
         return;
       }
 
@@ -3522,7 +3537,7 @@ function showFcFreeSheet() {
   body.innerHTML = freeTeachers.length > 0
     ? freeTeachers.map(t => {
         const sel = fcSelectedTeacherIds.has(t.id) ? ' sel' : '';
-        return `<span class="fc-free-name-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${escHtml(t.name)}</span>`;
+        return `<span class="fc-free-name-tag${sel}" data-id="${escHtml(t.id)}" onclick="toggleFcTeacher(this.dataset.id)">${escHtml(t.name)}</span>`;
       }).join('')
     : `<span style="color:#94a3b8;font-size:13px;">공강 교사가 없습니다.</span>`;
 
@@ -3584,7 +3599,7 @@ function renderFcTeacherList() {
     ? list.map(t => {
         const sel = fcSelectedTeacherIds.has(t.id) ? ' sel' : '';
         const mark = t.id === myId ? `<span class="fc-me-mark">나</span>` : '';
-        return `<span class="fc-teacher-tag${sel}" onclick="toggleFcTeacher('${t.id}')">${escHtml(t.name)}${mark}</span>`;
+        return `<span class="fc-teacher-tag${sel}" data-id="${escHtml(t.id)}" onclick="toggleFcTeacher(this.dataset.id)">${escHtml(t.name)}${mark}</span>`;
       }).join('')
     : `<div style="width:100%;padding:24px;text-align:center;color:#aaa;font-size:13px;">검색 결과가 없습니다.</div>`;
 }
